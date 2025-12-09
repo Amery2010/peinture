@@ -1,6 +1,4 @@
 
-
-
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp, HelpCircle, ExternalLink, Shield, Zap, Database, Globe, CloudUpload, Github } from 'lucide-react';
 
@@ -39,23 +37,33 @@ export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose, t }) => {
             icon: <Globe className="w-5 h-5 text-blue-400" />,
             question: t.faq_q4,
             answer: (
-                <span>
-                    {t.faq_a4_prefix} 
-                    <a href="https://huggingface.co/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
-                        Hugging Face <ExternalLink className="w-3 h-3" />
-                    </a>
-                    {t.faq_a4_mid}
-                    <a href="https://pollinations.ai/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
-                        Pollinations.ai <ExternalLink className="w-3 h-3" />
-                    </a>
-                    {t.faq_a4_suffix}
-                    <br/><br/>
-                    {t.faq_a4_gitee}
-                    <a href="https://ai.gitee.com/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
-                        Gitee AI <ExternalLink className="w-3 h-3" />
-                    </a>
-                    {t.faq_a4_suffix}
-                </span>
+                <div className="space-y-2">
+                    <p>
+                        {t.faq_a4_hf_pre} 
+                        <a href="https://huggingface.co/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
+                            Hugging Face <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {t.faq_a4_hf_mid}
+                        <a href="https://pollinations.ai/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
+                            Pollinations.ai <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {t.faq_a4_hf_post}
+                    </p>
+                    <p>
+                        {t.faq_a4_gitee_pre}
+                        <a href="https://ai.gitee.com/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
+                            Gitee AI <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {t.faq_a4_gitee_post}
+                    </p>
+                    <p>
+                        {t.faq_a4_ms_pre}
+                        <a href="https://modelscope.cn/" target="_blank" className="text-purple-400 hover:text-purple-300 mx-1 underline decoration-purple-400/30 inline-flex items-center gap-0.5">
+                            Model Scope <ExternalLink className="w-3 h-3" />
+                        </a>
+                        {t.faq_a4_ms_post}
+                    </p>
+                </div>
             )
         },
         {

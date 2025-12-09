@@ -1,13 +1,9 @@
-
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import { X, Save, KeyRound, Languages, ShieldCheck, ShieldAlert, Database, Eye, EyeOff } from 'lucide-react';
 import { Language } from '../translations';
 import { getTokenStats } from '../services/hfService';
 import { getGiteeTokenStats } from '../services/giteeService';
+import { getMsTokenStats } from '../services/msService';
 import { ProviderOption } from '../types';
 
 interface SettingsModalProps {
@@ -30,6 +26,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
     const [giteeStats, setGiteeStats] = useState({ total: 0, active: 0, exhausted: 0 });
     const [showGiteeToken, setShowGiteeToken] = useState(false);
 
+    // Model Scope Token State
+    const [msToken, setMsToken] = useState('');
+    const [msStats, setMsStats] = useState({ total: 0, active: 0, exhausted: 0 });
+    const [showMsToken, setShowMsToken] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
             // Load HF
@@ -41,6 +42,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
             const storedGiteeToken = localStorage.getItem('giteeToken') || '';
             setGiteeToken(storedGiteeToken);
             setGiteeStats(getGiteeTokenStats(storedGiteeToken));
+
+            // Load Model Scope
+            const storedMsToken = localStorage.getItem('msToken') || '';
+            setMsToken(storedMsToken);
+            setMsStats(getMsTokenStats(storedMsToken));
         }
     }, [isOpen]);
 
@@ -90,9 +96,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
         }
     };
 
+    // Model Scope Handlers
+    const handleMsTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVal = e.target.value;
+        setMsToken(newVal);
+        setMsStats(getMsTokenStats(newVal));
+    };
+
+    const handleMsPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        const text = e.clipboardData.getData('text');
+        if (text.includes('\n') || text.includes('\r')) {
+            e.preventDefault();
+            const normalized = text.split(/[\r\n]+/).map(t => t.trim()).filter(Boolean).join(',');
+            
+            const input = e.currentTarget;
+            const start = input.selectionStart ?? msToken.length;
+            const end = input.selectionEnd ?? msToken.length;
+            
+            const newValue = msToken.substring(0, start) + normalized + msToken.substring(end);
+            setMsToken(newValue);
+            setMsStats(getMsTokenStats(newValue));
+        }
+    };
+
     const handleSave = () => {
         localStorage.setItem('huggingFaceToken', token.trim());
         localStorage.setItem('giteeToken', giteeToken.trim());
+        localStorage.setItem('msToken', msToken.trim());
         onClose();
     };
 
@@ -251,6 +281,63 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, l
 
                             <p className="mt-3 text-xs text-white/40 leading-relaxed">
                                 {t.giteeTokenHelp} <a className="text-red-500 hover:text-red-400 underline decoration-red-500/30" href="https://ai.gitee.com/dashboard/settings/tokens" target="_blank">{t.giteeTokenLink}</a> {t.giteeTokenHelpEnd}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Model Scope Token */}
+                    {provider === 'modelscope' && (
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-white/90 mb-2">
+                                <KeyRound className="w-4 h-4 text-blue-500" />
+                                {t.msToken}
+                            </label>
+                            <div className="relative group">
+                                <input
+                                    type={showMsToken ? "text" : "password"}
+                                    value={msToken}
+                                    onChange={handleMsTokenChange}
+                                    onPaste={handleMsPaste}
+                                    placeholder="...,..."
+                                    className="w-full pl-4 pr-10 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono text-sm"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMsToken(!showMsToken)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1"
+                                >
+                                    {showMsToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                            
+                            {msStats.total > 1 && (
+                                <div className="mt-3 grid grid-cols-3 gap-2 animate-in fade-in duration-300">
+                                    <div className="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col items-center">
+                                        <span className="text-[10px] uppercase text-white/40 font-bold tracking-wider">{t.tokenTotal}</span>
+                                        <div className="flex items-center gap-1.5 text-white/90 font-mono text-sm">
+                                            <Database className="w-3.5 h-3.5" />
+                                            {msStats.total}
+                                        </div>
+                                    </div>
+                                    <div className="bg-green-500/10 rounded-lg p-2 border border-green-500/10 flex flex-col items-center">
+                                        <span className="text-[10px] uppercase text-green-400/60 font-bold tracking-wider">{t.tokenActive}</span>
+                                        <div className="flex items-center gap-1.5 text-green-400 font-mono text-sm">
+                                            <ShieldCheck className="w-3.5 h-3.5" />
+                                            {msStats.active}
+                                        </div>
+                                    </div>
+                                    <div className="bg-red-500/10 rounded-lg p-2 border border-red-500/10 flex flex-col items-center">
+                                        <span className="text-[10px] uppercase text-red-400/60 font-bold tracking-wider">{t.tokenExhausted}</span>
+                                        <div className="flex items-center gap-1.5 text-red-400 font-mono text-sm">
+                                            <ShieldAlert className="w-3.5 h-3.5" />
+                                            {msStats.exhausted}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="mt-3 text-xs text-white/40 leading-relaxed">
+                                {t.msTokenHelp} <a className="text-blue-500 hover:text-blue-400 underline decoration-blue-500/30" href="https://modelscope.cn/my/myaccesstoken" target="_blank">{t.msTokenLink}</a> {t.msTokenHelpEnd}
                             </p>
                         </div>
                     )}

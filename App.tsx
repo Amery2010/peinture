@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { generateImage, optimizePrompt, upscaler } from './services/hfService';
 import { generateGiteeImage, optimizePromptGitee } from './services/giteeService';
+import { generateMSImage, optimizePromptMS } from './services/msService';
 import { GeneratedImage, AspectRatioOption, ModelOption, ProviderOption } from './types';
 import { HistoryGallery } from './components/HistoryGallery';
 import { CustomSelect } from './components/CustomSelect';
@@ -52,15 +54,22 @@ const GITEE_MODEL_OPTIONS = [
   { value: 'Qwen-Image', label: 'Qwen Image' }
 ];
 
+const MS_MODEL_OPTIONS = [
+  { value: 'Tongyi-MAI/Z-Image-Turbo', label: 'Z-Image Turbo' }
+];
+
 const PROVIDER_OPTIONS = [
     { value: 'huggingface', label: 'Hugging Face' },
-    { value: 'gitee', label: 'Gitee AI' }
+    { value: 'gitee', label: 'Gitee AI' },
+    { value: 'modelscope', label: 'Model Scope' }
 ];
 
 const getModelConfig = (provider: ProviderOption, model: ModelOption) => {
   if (provider === 'gitee') {
     if (model === 'z-image-turbo') return { min: 1, max: 20, default: 9 };
     if (model === 'Qwen-Image') return { min: 4, max: 50, default: 24 };
+  } else if (provider === 'modelscope') {
+    if (model === 'Tongyi-MAI/Z-Image-Turbo') return { min: 1, max: 20, default: 9 };
   } else {
     if (model === 'z-image-turbo') return { min: 1, max: 20, default: 9 };
     if (model === 'qwen-image-fast') return { min: 4, max: 28, default: 8 };
@@ -208,6 +217,8 @@ export default function App() {
       // Reset model to first option of the new provider to avoid mismatch
       if (p === 'gitee') {
           setModel(GITEE_MODEL_OPTIONS[0].value as ModelOption);
+      } else if (p === 'modelscope') {
+          setModel(MS_MODEL_OPTIONS[0].value as ModelOption);
       } else {
           setModel(HF_MODEL_OPTIONS[0].value as ModelOption);
       }
@@ -256,6 +267,8 @@ export default function App() {
 
       if (provider === 'gitee') {
          result = await generateGiteeImage(model, prompt, aspectRatio, seedNumber, steps, enableHD);
+      } else if (provider === 'modelscope') {
+         result = await generateMSImage(model, prompt, aspectRatio, seedNumber, steps, enableHD);
       } else {
          result = await generateImage(model, prompt, aspectRatio, seedNumber, enableHD, steps);
       }
@@ -282,6 +295,8 @@ export default function App() {
     // Keep provider as is
     if (provider === 'gitee') {
         setModel(GITEE_MODEL_OPTIONS[0].value as ModelOption);
+    } else if (provider === 'modelscope') {
+        setModel(MS_MODEL_OPTIONS[0].value as ModelOption);
     } else {
         setModel(HF_MODEL_OPTIONS[0].value as ModelOption);
     }
@@ -352,9 +367,11 @@ export default function App() {
     try {
         let optimized = '';
         if (provider === 'gitee') {
-             optimized = await optimizePromptGitee(prompt);
+             optimized = await optimizePromptGitee(prompt, lang);
+        } else if (provider === 'modelscope') {
+             optimized = await optimizePromptMS(prompt, lang);
         } else {
-             optimized = await optimizePrompt(prompt);
+             optimized = await optimizePrompt(prompt, lang);
         }
         setPrompt(optimized);
     } catch (err: any) {
@@ -540,12 +557,12 @@ export default function App() {
   };
 
   const getModelLabel = (modelValue: string) => {
-      const option = [...HF_MODEL_OPTIONS, ...GITEE_MODEL_OPTIONS].find(o => o.value === modelValue);
+      const option = [...HF_MODEL_OPTIONS, ...GITEE_MODEL_OPTIONS, ...MS_MODEL_OPTIONS].find(o => o.value === modelValue);
       return option ? option.label : modelValue;
   };
 
   const isWorking = isLoading;
-  const currentModelOptions = provider === 'gitee' ? GITEE_MODEL_OPTIONS : HF_MODEL_OPTIONS;
+  const currentModelOptions = provider === 'gitee' ? GITEE_MODEL_OPTIONS : (provider === 'modelscope' ? MS_MODEL_OPTIONS : HF_MODEL_OPTIONS);
   const currentModelConfig = getModelConfig(provider, model);
 
   return (
@@ -695,7 +712,7 @@ export default function App() {
                     options={currentModelOptions}
                     icon={<Cpu className="w-5 h-5" />}
                     headerContent={
-                        model === 'z-image-turbo' && (
+                        (model === 'z-image-turbo' || model === 'Tongyi-MAI/Z-Image-Turbo') && (
                             <div className="flex items-center gap-2 animate-in fade-in duration-300">
                                 <span className="text-xs font-medium text-white/50">{t.hd}</span>
                                 <Tooltip content={enableHD ? t.hdEnabled : t.hdDisabled}>
@@ -920,11 +937,13 @@ export default function App() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <span className="block text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-0.5">{t.provider}</span>
-                                    <p className="text-white/90 capitalize">{currentImage.provider === 'gitee' ? 'Gitee AI' : 'Hugging Face'}</p>
+                                    <p className="text-white/90 capitalize">
+                                        {currentImage.provider === 'gitee' ? 'Gitee AI' : (currentImage.provider === 'modelscope' ? 'Model Scope' : 'Hugging Face')}
+                                    </p>
                                 </div>
                                 <div>
                                     <span className="block text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-0.5">{t.model}</span>
-                                    <p className="text-white/90">{getModelLabel(currentImage.model)}</p>
+                                    <p className="text-white/90 truncate">{getModelLabel(currentImage.model)}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">

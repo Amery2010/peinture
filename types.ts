@@ -17,9 +17,15 @@ export interface GeneratedImage {
 
 export type AspectRatioOption = "1:1" | "3:2" | "2:3" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9";
 
-export type ModelOption = "z-image-turbo" | "qwen-image-fast" | "ovis-image" | "Qwen-Image";
+export type ModelOption = 
+    | "z-image-turbo" 
+    | "qwen-image-fast" 
+    | "ovis-image" 
+    | "Qwen-Image"
+    | "Tongyi-MAI/Z-Image-Turbo"
+    | "Qwen/Qwen-Image";
 
-export type ProviderOption = "huggingface" | "gitee";
+export type ProviderOption = "huggingface" | "gitee" | "modelscope";
 
 export interface GenerationParams {
     model: ModelOption;

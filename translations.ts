@@ -1,18 +1,9 @@
 
-
-
-
-
-
-
-
-
-
 export type Language = 'en' | 'zh';
 
 export const translations = {
   en: {
-    appTitle: "AI Image Gen",
+    appTitle: "Peinture",
     prompt: "Prompt",
     optimize: "Optimize",
     optimizing: "Optimizing...",
@@ -45,9 +36,13 @@ export const translations = {
     hfTokenLink: "Access Token",
     hfTokenHelpEnd: "to increase free quota.",
     giteeToken: "Gitee AI Token",
-    giteeTokenHelp: "Required for Gitee. Provide multiple tokens. Get",
+    giteeTokenHelp: "Required. Provide multiple tokens. Get",
     giteeTokenLink: "Access Token",
     giteeTokenHelpEnd: "from dashboard.",
+    msToken: "Model Scope Token",
+    msTokenHelp: "Required. Provide multiple tokens. Get",
+    msTokenLink: "Access Token",
+    msTokenHelpEnd: "from dashboard.",
     tokenTotal: "Total",
     tokenActive: "Active",
     tokenExhausted: "Exhausted",
@@ -73,6 +68,8 @@ export const translations = {
     error_quota_exhausted: "Your today's quota has been used up. You can set up Hugging Face Token to get more quota.",
     error_gitee_token_required: "Gitee AI Token is required. Please set it in Settings.",
     error_gitee_token_exhausted: "All configured Gitee AI tokens have exhausted their daily quota or are invalid.",
+    error_ms_token_required: "Model Scope Token is required. Please set it in Settings.",
+    error_ms_token_exhausted: "All configured Model Scope tokens have exhausted their daily quota or are invalid.",
     error_api_connection: "API connection failed. Please check your network or token.",
     error_invalid_response: "Invalid response from the server.",
     error_prompt_optimization_failed: "Failed to optimize prompt. Please try again.",
@@ -80,16 +77,19 @@ export const translations = {
 
     // FAQ
     faq_q1: "Is this service free to use?",
-    faq_a1: "Yes, this project is completely free. It defaults to using public API quotas. Due to potential limits on public quotas during peak times, you can configure your own Hugging Face token in the settings for a more stable generation experience and higher usage quotas. Gitee AI requires you to provide a token, and each account receives 100 free usage quotas per day.",
+    faq_a1: "Yes, this project is completely free. It defaults to using public API quotas. Due to potential limits on public quotas during peak times, you can configure your own Hugging Face token in the settings for a more stable generation experience and higher usage quotas. Gitee AI and Model Scope require you to provide a token to use their free quotas.",
     faq_q2: "Is my data and privacy safe?",
     faq_a2: "Absolutely. We prioritize privacy. All generation history, settings, and tokens are stored locally in your browser (LocalStorage). We do not have a backend database, and we do not collect your personal usage data. Please note: Generated images are kept for 24 hours, so be sure to download your favorites. Prompt history is temporary and clears when you close the page.",
     faq_q3: "How does the multi-token system work?",
-    faq_a3: "You can enter multiple tokens separated by commas. The system automatically creates a pool. If the current token exhausts its daily quota, the system will automatically mark it as exhausted for the day and seamlessly switch to the next available token, ensuring your creation is uninterrupted. This mechanism applies to both Hugging Face and Gitee AI.",
+    faq_a3: "You can enter multiple tokens separated by commas. The system automatically creates a pool. If the current token exhausts its daily quota, the system will automatically mark it as exhausted for the day and seamlessly switch to the next available token, ensuring your creation is uninterrupted. This mechanism applies to Hugging Face, Gitee AI, and Model Scope.",
     faq_q4: "Which services power this app?",
-    faq_a4_prefix: "Image generation for Hugging Face is powered by",
-    faq_a4_mid: ", and prompt optimization is provided by",
-    faq_a4_gitee: "Image generation and prompt optimization for Gitee AI are provided by",
-    faq_a4_suffix: ".",
+    faq_a4_hf_pre: "Image generation for Hugging Face is powered by",
+    faq_a4_hf_mid: ", and prompt optimization is provided by",
+    faq_a4_hf_post: ".",
+    faq_a4_gitee_pre: "Image generation and prompt optimization for Gitee AI are provided by",
+    faq_a4_gitee_post: ".",
+    faq_a4_ms_pre: "Image generation and prompt optimization for Model Scope are provided by",
+    faq_a4_ms_post: ".",
     faq_q5: "Can I host this myself?",
     faq_a5: "Yes! This is an open-source project licensed under MIT. You can fork the repository from GitHub and deploy it to Vercel, Cloudflare Pages, or any static hosting service.",
     footer_license: "Released under the MIT License. Open source and free forever.",
@@ -104,7 +104,7 @@ export const translations = {
     ar_landscape_2_3: "DSLR Photography 2:3",
   },
   zh: {
-    appTitle: "AI 绘图",
+    appTitle: "派奇绘画",
     prompt: "提示词",
     optimize: "优化",
     optimizing: "优化中...",
@@ -137,9 +137,13 @@ export const translations = {
     hfTokenLink: "访问令牌",
     hfTokenHelpEnd: "以获得更多免费配额。",
     giteeToken: "Gitee AI 令牌",
-    giteeTokenHelp: "Gitee 必需。支持多个令牌。获取",
+    giteeTokenHelp: "必需。支持多个令牌。获取",
     giteeTokenLink: "访问令牌",
     giteeTokenHelpEnd: "从控制台。",
+    msToken: "Model Scope 令牌",
+    msTokenHelp: "必需。支持多个令牌。获取",
+    msTokenLink: "访问令牌",
+    msTokenHelpEnd: "从控制台。",
     tokenTotal: "总数",
     tokenActive: "可用",
     tokenExhausted: "耗尽",
@@ -165,6 +169,8 @@ export const translations = {
     error_quota_exhausted: "您的今日配额已用完。您可以设置 Hugging Face 令牌以获取更多配额。",
     error_gitee_token_required: "需要配置 Gitee AI 令牌。请在设置中进行配置。",
     error_gitee_token_exhausted: "所有配置的 Gitee AI 令牌已耗尽今日配额或无效。",
+    error_ms_token_required: "需要配置 Model Scope 令牌。请在设置中进行配置。",
+    error_ms_token_exhausted: "所有配置的 Model Scope 令牌已耗尽今日配额或无效。",
     error_api_connection: "API 连接失败。请检查您的网络或令牌。",
     error_invalid_response: "服务器返回了无效的响应。",
     error_prompt_optimization_failed: "优化提示词失败，请重试。",
@@ -172,16 +178,19 @@ export const translations = {
 
     // FAQ
     faq_q1: "这个服务是免费的吗？",
-    faq_a1: "是的，本项目完全免费。默认使用公共 API 配额。由于公共配额在高峰期可能受限，您可以在设置中配置自己的 Hugging Face 令牌，以获得更稳定的生成体验和更高的使用配额。Gitee AI 需要您提供令牌，每个账号每天可以获得 100 次免费使用配额。",
+    faq_a1: "是的，本项目完全免费。默认使用公共 API 配额。由于公共配额在高峰期可能受限，您可以在设置中配置自己的 Hugging Face 令牌，以获得更稳定的生成体验和更高的使用配额。Gitee AI 和 Model Scope 需要您提供令牌以使用其免费配额。",
     faq_q2: "我的隐私安全吗？",
     faq_a2: "绝对安全。我们非常重视隐私。所有的生成历史、设置和 Token 都仅存储在您的本地浏览器中 (LocalStorage)。我们没有后台数据库，也不会收集您的个人使用数据。温馨提示：生成的图片记录只会保留 24 小时，喜欢的图片请记得及时下载保存。提示词记录在您关闭页面后就会自动清空。",
     faq_q3: "多令牌系统是如何工作的？",
-    faq_a3: "支持输入多个用逗号分隔的令牌。系统会自动建立令牌池。如果当前使用的 Token 耗尽了当日配额，系统会自动将其标记为当日耗尽，并无缝切换到下一个可用的 Token，确保您的创作不中断。该机制适用于 Hugging Face 和 Gitee AI。",
+    faq_a3: "支持输入多个用逗号分隔的令牌。系统会自动建立令牌池。如果当前使用的 Token 耗尽了当日配额，系统会自动将其标记为当日耗尽，并无缝切换到下一个可用的 Token，确保您的创作不中断。该机制适用于 Hugging Face、Gitee AI 和 Model Scope。",
     faq_q4: "使用了哪些服务？",
-    faq_a4_prefix: "Hugging Face 的图片生成由",
-    faq_a4_mid: "提供支持，提示词优化功能由",
-    faq_a4_gitee: "Gitee AI 的图片生成和提示词优化均由",
-    faq_a4_suffix: "提供。",
+    faq_a4_hf_pre: "Hugging Face 的图片生成由",
+    faq_a4_hf_mid: "提供支持，提示词优化功能由",
+    faq_a4_hf_post: "提供。",
+    faq_a4_gitee_pre: "Gitee AI 的图片生成和提示词优化均由",
+    faq_a4_gitee_post: "提供。",
+    faq_a4_ms_pre: "Model Scope 的图片生成和提示词优化均由",
+    faq_a4_ms_post: "提供。",
     faq_q5: "我可以私有部署吗？",
     faq_a5: "可以！这是一个基于 MIT 协议的开源项目。您可以从 GitHub Fork 代码库，并将其自由部署到 Vercel、Cloudflare Pages 或任何静态托管平台。",
     footer_license: "基于 MIT 协议发布。永久开源免费。",

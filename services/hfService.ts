@@ -1,3 +1,4 @@
+
 import { GeneratedImage, AspectRatioOption, ModelOption } from "../types";
 
 const ZIMAGE_BASE_API_URL = "https://luca115-z-image-turbo.hf.space";
@@ -376,7 +377,7 @@ export const upscaler = async (url: string): Promise<{ url: string }> => {
   });
 };
 
-export const optimizePrompt = async (originalPrompt: string): Promise<string> => {
+export const optimizePrompt = async (originalPrompt: string, lang: string): Promise<string> => {
   try {
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -394,7 +395,7 @@ I transform prompts to create visually stunning images by rigorously optimizing 
 My generated prompt output will be strictly under 300 words. Prior to outputting, I will internally validate that the refined prompt strictly adheres to the word count limit and effectively incorporates the intended stylistic and technical enhancements.
 My output will consist exclusively of the refined image prompt text. It will commence immediately, with no leading whitespace.
 The text will strictly avoid markdown, quotation marks, conversational preambles, explanations, or concluding remarks.
-I will ensure the output text is in the same language as the user's prompts.`
+I will ensure the output text is in ${lang === 'zh' ? 'Chinese' : 'English'}.`
           },
           {
             role: 'user',

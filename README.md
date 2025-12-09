@@ -1,16 +1,22 @@
+
 # Peinture (AI Image Gen)
 
-A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwind CSS. This application leverages powerful generative models from **Hugging Face** and **Gitee AI** to create high-quality images from text prompts in seconds.
+![Stars](https://img.shields.io/github/stars/Amery2010/peinture?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Amery2010/peinture?style=flat-square)
+![Issues](https://img.shields.io/github/issues/Amery2010/peinture?style=flat-square)
 
-![App Screenshot](https://cdn.xiangfa.org/upload/WX20251206-170626@2x.png)
+A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwind CSS. This application leverages powerful generative models from **Hugging Face**, **Gitee AI**, and **Model Scope** to create high-quality images from text prompts in seconds.
+
+![App Screenshot](https://cdn.u14.app/upload/WX20251209-170748@2x.png)
 
 ## ✨ Features
 
-- **Dual AI Providers**: Seamlessly switch between **Hugging Face** and **Gitee AI** providers to access different model ecosystems and quotas.
+- **Triple AI Providers**: Seamlessly switch between **Hugging Face**, **Gitee AI**, and **Model Scope** providers to access different model ecosystems and quotas.
 - **Multi-Model Support**: Access diverse models including:
   - Hugging Face: `Z-Image Turbo`, `Qwen Image Fast`, `Ovis Image`
   - Gitee AI: `Z-Image Turbo`, `Qwen Image`
-- **Prompt Optimization**: Integrated AI prompt enhancer that expands simple ideas into detailed, cinematic descriptions (powered by Pollinations.ai for HF and Qwen3 for Gitee).
+  - Model Scope: `Z-Image Turbo`
+- **Prompt Optimization**: Integrated AI prompt enhancer that expands simple ideas into detailed, cinematic descriptions (powered by Pollinations.ai for HF, Qwen3 for Gitee, and DeepSeek-V3 for Model Scope).
 - **Advanced Controls**: Fine-tune your creations with adjustable **inference steps**, **seed control**, and **HD Mode** (High Definition).
 - **History Gallery**: Automatically saves generated images locally. View, zoom, pan, and manage your creation history.
 - **4x Resolution**: AI upscaling technology to increase image resolution up to 4x (Supported on Hugging Face).
@@ -26,9 +32,10 @@ A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwi
 - **Icons**: Lucide React
 - **Animation**: CSS Transitions & Tailwind
 - **APIs**:
-  - **Hugging Face Inference API** (Image Generation & Upscaling)
-  - **Gitee AI API** (Image Generation & Prompt Optimization)
-  - **Pollinations.ai** (Prompt Engineering for HF)
+  - **Hugging Face Inference API**
+  - **Gitee AI API**
+  - **Model Scope API**
+  - **Pollinations.ai**
 
 ## 🚀 Getting Started
 
@@ -126,7 +133,29 @@ To use the Gitee AI provider, you must provide an API token.
 2. Paste it into the **Gitee AI Token** field in Settings.
 3. Gitee AI provides a daily free quota for generated images.
 
+### Model Scope Token (Required for Model Scope)
+To use the Model Scope provider, you must provide an API token.
+1. Get a token from [Model Scope Dashboard](https://modelscope.cn/my/myaccesstoken).
+2. Paste it into the **Model Scope Token** field in Settings.
+
 *Tokens are stored securely in your browser's `localStorage` and are strictly used to authenticate requests to the respective Inference endpoints.*
+
+## ❓ FAQ
+
+**Q: Is this service free to use?**
+A: Yes, this project is completely free. It defaults to using public API quotas. Due to potential limits on public quotas during peak times, you can configure your own Hugging Face token in the settings for a more stable generation experience and higher usage quotas. Gitee AI and Model Scope require you to provide a token to use their free quotas.
+
+**Q: Is my data and privacy safe?**
+A: Absolutely. We prioritize privacy. All generation history, settings, and tokens are stored locally in your browser (LocalStorage). We do not have a backend database, and we do not collect your personal usage data. Please note: Generated images are kept for 24 hours, so be sure to download your favorites. Prompt history is temporary and clears when you close the page.
+
+**Q: How does the multi-token system work?**
+A: You can enter multiple tokens separated by commas. The system automatically creates a pool. If the current token exhausts its daily quota, the system will automatically mark it as exhausted for the day and seamlessly switch to the next available token, ensuring your creation is uninterrupted. This mechanism applies to Hugging Face, Gitee AI, and Model Scope.
+
+**Q: Which services power this app?**
+A: Image generation for Hugging Face is powered by Hugging Face, and prompt optimization is provided by Pollinations.ai. Image generation and prompt optimization for Gitee AI are provided by Gitee AI. Image generation and prompt optimization for Model Scope are provided by Model Scope.
+
+**Q: Can I host this myself?**
+A: Yes! This is an open-source project licensed under MIT. You can fork the repository from GitHub and deploy it to Vercel, Cloudflare Pages, or any static hosting service.
 
 ## 🤝 Contributing
 
@@ -140,4 +169,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License.

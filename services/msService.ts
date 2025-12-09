@@ -1,13 +1,14 @@
 
 import { GeneratedImage, AspectRatioOption, ModelOption } from "../types";
 
-const GITEE_GENERATE_API_URL = "https://ai.gitee.com/v1/images/generations";
-const GITEE_CHAT_API_URL = "https://ai.gitee.com/v1/chat/completions";
+const MS_GENERATE_API_URL = "https://api-inference.modelscope.cn/v1/images/generations";
+const MS_CHAT_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
+const MS_TASK_API_URL = "https://api-inference.modelscope.cn/v1/tasks";
 
-// --- Token Management System (Reused logic pattern for Gitee) ---
+// --- Token Management System ---
 
-const TOKEN_STORAGE_KEY = 'giteeToken';
-const TOKEN_STATUS_KEY = 'gitee_token_status';
+const TOKEN_STORAGE_KEY = 'msToken';
+const TOKEN_STATUS_KEY = 'ms_token_status';
 
 interface TokenStatusStore {
   date: string; // YYYY-MM-DD
@@ -45,14 +46,14 @@ const saveTokenStatusStore = (store: TokenStatusStore) => {
   }
 };
 
-export const getGiteeTokens = (rawInput?: string | null): string[] => {
+export const getMsTokens = (rawInput?: string | null): string[] => {
   const input = rawInput !== undefined ? rawInput : (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : '');
   if (!input) return [];
   return input.split(',').map(t => t.trim()).filter(t => t.length > 0);
 };
 
-export const getGiteeTokenStats = (rawInput: string) => {
-  const tokens = getGiteeTokens(rawInput);
+export const getMsTokenStats = (rawInput: string) => {
+  const tokens = getMsTokens(rawInput);
   const store = getTokenStatusStore();
   const total = tokens.length;
   const exhausted = tokens.filter(t => store.exhausted[t]).length;
@@ -64,7 +65,7 @@ export const getGiteeTokenStats = (rawInput: string) => {
 };
 
 const getNextAvailableToken = (): string | null => {
-  const tokens = getGiteeTokens();
+  const tokens = getMsTokens();
   const store = getTokenStatusStore();
   return tokens.find(t => !store.exhausted[t]) || null;
 };
@@ -75,11 +76,11 @@ const markTokenExhausted = (token: string) => {
   saveTokenStatusStore(store);
 };
 
-const runWithGiteeTokenRetry = async <T>(operation: (token: string) => Promise<T>): Promise<T> => {
-  const tokens = getGiteeTokens();
+const runWithMsTokenRetry = async <T>(operation: (token: string) => Promise<T>): Promise<T> => {
+  const tokens = getMsTokens();
   
   if (tokens.length === 0) {
-      throw new Error("error_gitee_token_required");
+      throw new Error("error_ms_token_required");
   }
 
   let lastError: any;
@@ -91,7 +92,7 @@ const runWithGiteeTokenRetry = async <T>(operation: (token: string) => Promise<T
     const token = getNextAvailableToken();
     
     if (!token) {
-       throw new Error("error_gitee_token_exhausted");
+       throw new Error("error_ms_token_exhausted");
     }
 
     try {
@@ -103,10 +104,12 @@ const runWithGiteeTokenRetry = async <T>(operation: (token: string) => Promise<T
         error.message?.includes("429") ||
         error.status === 429 ||
         error.message?.includes("quota") ||
-        error.message?.includes("credit");
+        error.message?.includes("credit") ||
+        error.message?.includes("Arrearage") ||
+        error.message?.includes("Bill");
 
       if (isQuotaError && token) {
-        console.warn(`Gitee AI Token ${token.substring(0, 8)}... exhausted/error. Switching to next token.`);
+        console.warn(`Model Scope Token ${token.substring(0, 8)}... exhausted/error. Switching to next token.`);
         markTokenExhausted(token);
         continue;
       }
@@ -162,7 +165,26 @@ const getDimensions = (ratio: AspectRatioOption, enableHD: boolean): { width: nu
 
 // --- Service Logic ---
 
-export const generateGiteeImage = async (
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const checkTaskStatus = async (taskId: string, token: string): Promise<any> => {
+  const response = await fetch(`${MS_TASK_API_URL}/${taskId}`, {
+    method: 'GET',
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+      "X-ModelScope-Task-Type": "image_generation"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Model Scope Task Check Error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const generateMSImage = async (
   model: ModelOption,
   prompt: string,
   aspectRatio: AspectRatioOption,
@@ -172,71 +194,95 @@ export const generateGiteeImage = async (
 ): Promise<GeneratedImage> => {
   const { width, height } = getDimensions(aspectRatio, enableHD);
   const finalSeed = seed ?? Math.floor(Math.random() * 2147483647);
-  // Default steps logic handled in App.tsx, but good to have fallback here
   const finalSteps = steps ?? 9; 
+  const sizeString = `${width}x${height}`;
 
-  return runWithGiteeTokenRetry(async (token) => {
+  return runWithMsTokenRetry(async (token) => {
     try {
-      const response = await fetch(GITEE_GENERATE_API_URL, {
+      // 1. Submit async task
+      const response = await fetch(MS_GENERATE_API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "X-ModelScope-Async-Mode": "true"
         },
         body: JSON.stringify({
           prompt,
           model,
-          width,
-          height,
+          size: sizeString,
           seed: finalSeed,
-          num_inference_steps: finalSteps
+          steps: finalSteps
         })
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || `Gitee AI API Error: ${response.status}`);
+        throw new Error(errData.message || `Model Scope API Error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const initialData = await response.json();
+      const taskId = initialData.task_id;
+
+      if (!taskId) {
+          throw new Error("error_invalid_response");
+      }
+
+      // 2. Poll for status
+      let attempts = 0;
+      const maxAttempts = 60; // 60 * 2s = 120s timeout
       
-      if (!data.data || !data.data[0] || !data.data[0].b64_json) {
-        throw new Error("error_invalid_response");
+      while (attempts < maxAttempts) {
+          await sleep(2000); // Wait 2 seconds
+          
+          const taskStatus = await checkTaskStatus(taskId, token);
+          
+          if (taskStatus.task_status === 'SUCCEED') {
+              // Task done
+              const imageUrl = taskStatus.output_images?.[0];
+              if (!imageUrl) {
+                 throw new Error("error_invalid_response");
+              }
+
+              return {
+                id: crypto.randomUUID(),
+                url: imageUrl,
+                model,
+                prompt,
+                aspectRatio,
+                timestamp: Date.now(),
+                seed: finalSeed,
+                steps: finalSteps,
+                provider: 'modelscope'
+              };
+
+          } else if (taskStatus.task_status === 'FAILED' || taskStatus.task_status === 'CANCELED') {
+              throw new Error("error_invalid_response");
+          }
+          // If PENDING or RUNNING, continue loop
+          attempts++;
       }
+      
+      throw new Error("error_api_connection");
 
-      const base64Image = data.data[0].b64_json;
-      const mimeType = data.data[0].type || "image/png";
-      const imageUrl = `data:${mimeType};base64,${base64Image}`;
-
-      return {
-        id: crypto.randomUUID(),
-        url: imageUrl,
-        model,
-        prompt,
-        aspectRatio,
-        timestamp: Date.now(),
-        seed: finalSeed,
-        steps: finalSteps,
-        provider: 'gitee'
-      };
     } catch (error) {
-      console.error("Gitee AI Image Generation Error:", error);
+      console.error("Model Scope Image Generation Error:", error);
       throw error;
     }
   });
 };
 
-export const optimizePromptGitee = async (originalPrompt: string, lang: string): Promise<string> => {
-  return runWithGiteeTokenRetry(async (token) => {
+export const optimizePromptMS = async (originalPrompt: string, lang: string): Promise<string> => {
+  return runWithMsTokenRetry(async (token) => {
     try {
-      const response = await fetch(GITEE_CHAT_API_URL, {
+      const response = await fetch(MS_CHAT_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          model: 'Qwen3-235B-A22B-Instruct-2507',
+          model: 'deepseek-ai/DeepSeek-V3.2',
           messages: [
             {
               role: 'system',
@@ -266,7 +312,7 @@ I will ensure the output text is in ${lang === 'zh' ? 'Chinese' : 'English'}.`
       
       return content || originalPrompt;
     } catch (error) {
-      console.error("Gitee AI Prompt Optimization Error:", error);
+      console.error("Model Scope Prompt Optimization Error:", error);
       throw error;
     }
   });

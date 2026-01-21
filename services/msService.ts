@@ -1,6 +1,6 @@
 
 import { GeneratedImage, AspectRatioOption, ModelOption } from "../types";
-import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX, getOptimizationModel } from "./utils";
+import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX } from "./utils";
 import { uploadToGradio } from "./hfService";
 import { API_MODEL_MAP } from "../constants";
 
@@ -306,10 +306,9 @@ export const editImageMS = async (
   });
 };
 
-export const optimizePromptMS = async (originalPrompt: string): Promise<string> => {
+export const optimizePromptMS = async (originalPrompt: string, model: string = 'deepseek-3_2'): Promise<string> => {
   return runWithMsTokenRetry(async (token) => {
     try {
-      const model = getOptimizationModel('modelscope');
       // Append the fixed suffix to the user's custom system prompt
       const systemInstruction = getSystemPromptContent() + FIXED_SYSTEM_PROMPT_SUFFIX;
       const apiModel = API_MODEL_MAP.modelscope[model] || model;

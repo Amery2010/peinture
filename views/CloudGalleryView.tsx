@@ -1,19 +1,23 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { CloudFile } from '../types';
-import { CloudUpload, Image as ImageIcon, Film, Loader2, Download, Trash2, Copy, Eye, EyeOff, Maximize2, X, Check, Settings } from 'lucide-react';
+import { CloudUpload, Image as ImageIcon, Loader2, Download, Trash2, Copy, Eye, EyeOff, X, Check, Settings } from 'lucide-react';
 import { isStorageConfigured, listCloudFiles, deleteCloudFile, getStorageType, fetchCloudBlob, renameCloudFile, getFileId, getS3Config } from '../services/storageService';
 import { downloadImage } from '../services/utils';
-import { Tooltip } from './Tooltip';
+import { Tooltip } from '../components/Tooltip';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { useAppStore } from '../store/appStore';
+import { translations } from '../translations';
 
-interface CloudGalleryProps {
-    t: any;
+interface CloudGalleryViewProps {
     handleUploadToS3: (blob: Blob, fileName: string, metadata?: any) => Promise<void>;
     onOpenSettings: () => void;
 }
 
-export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3, onOpenSettings }) => {
+export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({ handleUploadToS3, onOpenSettings }) => {
+    const { language } = useAppStore();
+    const t = translations[language];
+
     const [files, setFiles] = useState<CloudFile[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -60,13 +64,14 @@ export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3,
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    // Sequential Loading Effect for WebDAV or Private S3
+    // Sequential Loading Effect for WebDAV, Private S3, or OPFS
     useEffect(() => {
         const type = getStorageType();
         const isS3Private = type === 's3' && !getS3Config().publicDomain;
         const isWebDAV = type === 'webdav';
+        const isOPFS = type === 'opfs';
         
-        if (!isWebDAV && !isS3Private) return;
+        if (!isWebDAV && !isS3Private && !isOPFS) return;
         
         let isCancelled = false;
 
@@ -76,14 +81,14 @@ export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3,
                 // If we already have a local URL for this file (and it's valid), skip
                 if (localUrls[file.key]) continue;
 
-                // Fetch blob and create ObjectURL (handles signed S3 requests via fetchCloudBlob)
+                // Fetch blob and create ObjectURL (handles signed S3 requests and OPFS via fetchCloudBlob)
                 try {
-                    const blob = await fetchCloudBlob(file.url);
+                    const blob = await fetchCloudBlob(file.url as string);
                     if (!isCancelled) {
                         const url = URL.createObjectURL(blob);
                         setLocalUrls(prev => ({ ...prev, [file.key]: url }));
                     }
-                } catch (error: any) {
+                } catch {
                     // Outputting system error messages is prohibited.
                     console.error(`Failed to load cloud image: ${file.key}`);
                 }
@@ -209,25 +214,16 @@ export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3,
             // Or if it's already an Object URL (blob:...)
             let downloadUrl = urlToUse;
             
-            // If it's a remote URL (not a blob URL), fetchBlob handles proxy/headers if used via unified downloadImage
-            // However, CloudGallery `localUrls` might hold blob URLs from `fetchCloudBlob` (which handles signed S3).
-            // `downloadImage` in utils handles `blob:` protocol natively.
-            
-            // If it is NOT a local blob url, and it IS a private S3/WebDAV link (checked by logic above in load),
+            // If it is NOT a local blob url, and it IS a private S3/WebDAV/OPFS link
             // we should have already loaded it into `localUrls`.
             // If `localUrls` is missing (e.g. infinite scroll not reached yet or failed), `urlToUse` is `file.url`.
-            // `file.url` for private S3/WebDAV might not be publicly accessible via `fetch` inside `downloadImage` (which lacks headers).
-            // BUT `downloadImage` is unified for public/proxy logic. 
             
             // Special Case: Private Storage Download via unified `downloadImage`.
-            // If we have a local blob URL, pass that. `downloadImage` handles `blob:`.
-            // If we don't, and it requires auth, `downloadImage` will fail unless we fetch it here first using `fetchCloudBlob`.
-            
-            if (!downloadUrl.startsWith('blob:') && (getStorageType() === 'webdav' || (getStorageType() === 's3' && !getS3Config().publicDomain))) {
+            const type = getStorageType();
+            if (!downloadUrl.startsWith('blob:') && (type === 'webdav' || type === 'opfs' || (type === 's3' && !getS3Config().publicDomain))) {
                  const blob = await fetchCloudBlob(downloadUrl);
                  downloadUrl = window.URL.createObjectURL(blob);
                  // We will let `downloadImage` handle the download, and then revoke.
-                 // But `downloadImage` is async.
                  await downloadImage(downloadUrl, fileName);
                  setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
             } else {
@@ -312,7 +308,7 @@ export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3,
                 await deleteCloudFile(file.key);
 
             } else {
-                // WebDAV supports MOVE, so we use rename
+                // WebDAV and OPFS support rename
                 await renameCloudFile(file.key, newKey);
             }
             
@@ -345,12 +341,12 @@ export const CloudGallery: React.FC<CloudGalleryProps> = ({ t, handleUploadToS3,
 
     const visibleFiles = useMemo(() => files.slice(0, displayLimit), [files, displayLimit]);
     
-    // Use proxy loading if WebDAV OR S3 (private)
+    // Use proxy loading if WebDAV OR OPFS OR S3 (private)
     const type = getStorageType();
-    const useProxyLoading = type === 'webdav' || (type === 's3' && !getS3Config().publicDomain);
+    const useProxyLoading = type === 'webdav' || type === 'opfs' || (type === 's3' && !getS3Config().publicDomain);
 
     return (
-        <div className="w-full h-full flex flex-col p-4 animate-in fade-in duration-300">
+        <div className="w-full h-full flex flex-col p-4">
              
              {/* Header */}
              <div className="flex flex-row items-center justify-between mb-4 gap-4">

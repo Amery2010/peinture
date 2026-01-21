@@ -1,12 +1,10 @@
-
-
 # Peinture (Free AI Image Gen)
 
 ![Stars](https://img.shields.io/github/stars/Amery2010/peinture?style=flat-square)
 ![Forks](https://img.shields.io/github/forks/Amery2010/peinture?style=flat-square)
 ![Issues](https://img.shields.io/github/issues/Amery2010/peinture?style=flat-square)
 
-A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwind CSS. This application leverages powerful generative models from **Hugging Face**, **Gitee AI**, and **Model Scope** to create high-quality images from text prompts in seconds.
+A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwind CSS. This application leverages powerful generative models from **Hugging Face**, **Gitee AI**, **Model Scope**, and **A4F** to create high-quality images from text prompts in seconds.
 
 ![App Screenshot](https://cdn.u14.app/upload/WX20251209-170748@2x.png)
 
@@ -16,22 +14,22 @@ A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwi
 
 ## ✨ Features
 
-- **Triple AI Providers**: Seamlessly switch between **Hugging Face**, **Gitee AI**, and **Model Scope** providers to access different model ecosystems and quotas.
-- **Multi-Model Support**: Access diverse models including:
-  - Hugging Face: `Z-Image Turbo`, `Qwen Image Fast`, `Ovis Image`, `FLUX.1 Schnell`
-  - Gitee AI: `Z-Image Turbo`, `Qwen Image`, `FLUX.1 Schnell`, `FLUX.1 Krea`, `FLUX.1 Dev`
-  - Model Scope: `Z-Image Turbo`, `FLUX.2`, `FLUX.1 Krea`, `FLUX.1`
-- **Image Editor**: Modify existing images with precision. Use Brush and Rectangle tools to guide AI edits, and upload up to 3 reference images for style or content guidance (Powered by Qwen-Image-Edit).
-- **Live Motion**: Transform static images into dynamic short videos using advanced Image-to-Video models (Wan2.2). Experience cinematic motion and bring your art to life (Supported on Hugging Face & Gitee AI).
-- **Cloud Storage & Gallery**: Configure **S3-compatible storage** (AWS, R2, MinIO) or **WebDAV** to save your creations privately in the cloud. Browse, manage, and download your cloud assets directly from the built-in Gallery.
-- **Prompt Optimization**: Integrated AI prompt enhancer that expands simple ideas into detailed, cinematic descriptions (powered by Pollinations.ai for Hugging Face, DeepSeek for Gitee AI and Model Scope).
-- **Auto Translation**: Intelligent detection and translation of non-English prompts to optimize performance for English-centric models like **FLUX**.
-- **Advanced Controls**: Fine-tune your creations with adjustable **inference steps**, **seed control**, **guidance scale** (for Flux), and **HD Mode** (High Definition).
-- **History Gallery**: Automatically saves generated images locally. View, zoom, pan, and manage your creation history.
-- **4x Resolution**: AI upscaling technology to increase image resolution up to 4x (Only supported on Hugging Face).
-- **Multilingual**: Full support for English and Chinese (中文) interfaces.
-- **Token Management**: Configure personal API tokens for higher rate limits and stability.
-- **Privacy Focused**: History is stored in your browser's LocalStorage; Cloud credentials are also stored locally and never sent to our servers (except to authenticate with your storage provider).
+- **Multi-Provider Architecture**: Seamlessly switch between **Hugging Face**, **Gitee AI**, **Model Scope**, and **A4F**. You can also add **Custom OpenAI-compatible Providers** to extend functionality infinitely.
+- **Diverse Model Ecosystem**: Access a wide range of models including:
+  - **Generation**: `Z-Image Turbo`, `Qwen Image`, `Ovis Image`, `FLUX.1 Schnell/Dev/Krea`, `FLUX.2`.
+  - **Text/Optimization**: `OpenAI 4o-mini`, `DeepSeek V3/R1`, `Qwen 3`, `Gemini 2.5 Flash Lite`.
+- **Professional Image Editor**: Modify existing images with precision using the **Qwen-Image-Edit** model. Features include Brush/Rectangle selection, reference image support (up to 3), and AI-assisted prompt optimization.
+- **Live Motion (Wan 2.2)**: Transform static images into dynamic 5-second cinematic videos using the advanced **Wan 2.2** model (Supported on Hugging Face & Gitee AI).
+- **Flexible Storage System**: 
+  - **Local (OPFS)**: High-performance, persistent local storage within the browser.
+  - **Cloud**: Connect **S3-compatible storage** (AWS, R2, MinIO) or **WebDAV** to sync your creations across devices.
+- **Prompt Engineering**: Integrated AI prompt enhancer that expands simple ideas into detailed descriptions. Includes **Auto Translation** for optimizing prompts for English-centric models like FLUX.
+- **Advanced Controls**: Fine-tune your creations with adjustable **inference steps**, **seed control**, **guidance scale**, and **HD Mode** (4x Upscaling).
+- **Service Modes**: 
+  - **Local**: Runs entirely in the browser using public APIs.
+  - **Server**: Connects to a private backend for proxying requests.
+  - **Hydration**: Hybrid mode combining local logic with server capabilities.
+- **Privacy Focused**: History and credentials are stored locally in your browser's LocalStorage. No user tracking.
 
 ## 🛠 Tech Stack
 
@@ -39,13 +37,9 @@ A sleek, dark-themed AI image generator built with React, TypeScript, and Tailwi
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
-- **Animation**: CSS Transitions & Tailwind
-- **APIs**:
-  - **Hugging Face Inference API**
-  - **Gitee AI API**
-  - **Model Scope API**
-  - **Pollinations.ai**
-  - **S3 / WebDAV Protocols**
+- **State Management**: Zustand (with Persistence)
+- **Storage**: OPFS (Origin Private File System)
+- **APIs**: Hugging Face Inference, Gitee AI, Model Scope, A4F, Pollinations.ai, S3 / WebDAV Protocols
 
 ## 🚀 Getting Started
 
@@ -147,6 +141,12 @@ To use the Gitee AI provider, you must provide an API token.
 To use the Model Scope provider, you must provide an API token.
 1. Get a token from [Model Scope Dashboard](https://modelscope.cn/my/myaccesstoken).
 2. Paste it into the **Model Scope Token** field in Settings.
+
+### A4F Token (Required for Gitee)
+To use the A4F provider, you must provide an API token.
+1. Get a token from [A4F Dashboard](https://www.a4f.co/api-keys).
+2. Paste it into the **A4F Token** field in Settings.
+3. A4F provides a daily free quota for generated images.
 
 *Tokens are stored securely in your browser's `localStorage` and are strictly used to authenticate requests to the respective Inference endpoints.*
 

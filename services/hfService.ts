@@ -1,6 +1,8 @@
 
 import { GeneratedImage, AspectRatioOption, ModelOption } from "../types";
-import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX, getOptimizationModel, getVideoSettings } from "./utils";
+import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX, getVideoSettings, fetchBlob } from "./utils";
+import { fetchCloudBlob } from "./storageService";
+import { API_MODEL_MAP } from "../constants";
 
 const ZIMAGE_BASE_API_URL = "https://luca115-z-image-turbo.hf.space";
 const QWEN_IMAGE_BASE_API_URL = "https://mcp-tools-qwen-image-fast.hf.space";
@@ -165,6 +167,117 @@ export const uploadToGradio = async (baseUrl: string, image: string | Blob, toke
     return result[0]; // Returns the filename/path relative to the Gradio space
 };
 
+// --- Gradio Queue Helper (New Logic) ---
+
+interface GradioPayload {
+    data: any[];
+    fn_index: number;
+    trigger_id: number;
+    session_hash: string;
+    event_data: null;
+}
+
+const runGradioTask = async <T>(
+    baseUrl: string,
+    data: any[],
+    fn_index: number,
+    trigger_id: number,
+    token: string | null,
+    signal?: AbortSignal
+): Promise<T> => {
+    const session_hash = Date.now().toString(16);
+    
+    // 1. Join Queue
+    const payload: GradioPayload = {
+        data,
+        fn_index,
+        trigger_id,
+        session_hash,
+        event_data: null
+    };
+
+    const joinResponse = await fetch(`${baseUrl}/gradio_api/queue/join`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload),
+        signal
+    });
+
+    if (!joinResponse.ok) {
+        // Handle 429 or other errors as quota exhausted if applicable
+        if (joinResponse.status === 429) throw new Error(QUOTA_ERROR_KEY);
+        throw new Error(`Gradio Join Error: ${joinResponse.status}`);
+    }
+
+    // 2. Listen for Result via SSE
+    const sseResponse = await fetch(`${baseUrl}/gradio_api/queue/data?session_hash=${session_hash}`, {
+        headers: {
+            'Accept': 'text/event-stream',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        signal
+    });
+
+    if (!sseResponse.ok) {
+        if (sseResponse.status === 429) throw new Error(QUOTA_ERROR_KEY);
+        throw new Error(`Gradio SSE Error: ${sseResponse.status}`);
+    }
+
+    const reader = sseResponse.body?.getReader();
+    if (!reader) throw new Error("No response body from Gradio stream");
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep partial line for next chunk
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const jsonStr = line.slice(6).trim();
+                    try {
+                        const msg = JSON.parse(jsonStr);
+                        
+                        if (msg.msg === 'process_completed') {
+                            if (msg.success) {
+                                return msg.output as T;
+                            } else {
+                                // Enhanced Error Handling
+                                const errorType = msg.output?.error || 'Error';
+                                const errorTitle = msg.title || msg.output?.title || 'Gradio task process failed';
+                                throw new Error(`${errorTitle} (${errorType})`);
+                            }
+                        }
+                        
+                        if (msg.msg === 'close_stream') {
+                            // Stream closed, loop will terminate naturally or we throw if no result found
+                        }
+                    } catch (e) {
+                        // If it's our own error, rethrow
+                        if (e instanceof Error && (e.message === QUOTA_ERROR_KEY || e.message.includes('process failed') || e.message.includes('Error'))) {
+                            throw e;
+                        }
+                        // Otherwise ignore parse errors or irrelevant messages
+                    }
+                }
+            }
+        }
+    } finally {
+        reader.releaseLock();
+    }
+
+    throw new Error("Gradio stream closed without result");
+};
+
 // --- Service Logic ---
 
 const getBaseDimensions = (ratio: AspectRatioOption) => {
@@ -193,43 +306,6 @@ const getDimensions = (ratio: AspectRatioOption, enableHD: boolean): { width: nu
   return base;
 }
 
-const getAuthHeaders = (token: string | null): Record<string, string> => {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  return headers;
-};
-
-function extractCompleteEventData(sseStream: string): any | null {
-  const lines = sseStream.split('\n');
-  let isCompleteEvent = false;
-
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      if (line.substring(6).trim() === 'complete') {
-        isCompleteEvent = true;
-      } else if (line.substring(6).trim() === 'error') {
-        isCompleteEvent = false;
-        throw new Error(QUOTA_ERROR_KEY);
-      } else {
-        isCompleteEvent = false; // Reset if it's another event type
-      }
-    } else if (line.startsWith('data:') && isCompleteEvent) {
-      const jsonData = line.substring(5).trim();
-      try {
-        return JSON.parse(jsonData);
-      } catch (e) {
-        console.error("Error parsing JSON data:", e);
-        return null;
-      }
-    }
-  }
-  return null; // No complete event with data found
-}
-
 const generateZImage = async (
   prompt: string,
   aspectRatio: AspectRatioOption,
@@ -241,21 +317,16 @@ const generateZImage = async (
 
   return runWithTokenRetry(async (token) => {
     try {
-      const queue = await fetch(ZIMAGE_BASE_API_URL + '/gradio_api/call/generate_image', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [prompt, height, width, steps, seed, false]
-        })
-      });
-      const { event_id } = await queue.json();
-      const response = await fetch(ZIMAGE_BASE_API_URL + '/gradio_api/call/generate_image/' + event_id, {
-        headers: getAuthHeaders(token)
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
+      const output: any = await runGradioTask(
+          ZIMAGE_BASE_API_URL,
+          [prompt, height, width, steps, seed, false],
+          1, // fn_index
+          16, // trigger_id
+          token
+      );
 
-      if (!data) throw new Error("error_invalid_response");
+      const data = output.data;
+      if (!data || !data[0] || !data[0].url) throw new Error("error_invalid_response");
 
       return {
         id: generateUUID(),
@@ -286,21 +357,16 @@ const generateFluxSchnellImage = async (
   return runWithTokenRetry(async (token) => {
     try {
       // Data: ["Prompt", Seed, Randomize seed (false), Width, Height, steps]
-      const queue = await fetch(FLUX_SCHNELL_BASE_API_URL + '/gradio_api/call/infer', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [prompt, seed, false, width, height, steps]
-        })
-      });
-      const { event_id } = await queue.json();
-      const response = await fetch(FLUX_SCHNELL_BASE_API_URL + '/gradio_api/call/infer/' + event_id, {
-        headers: getAuthHeaders(token)
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
+      const output: any = await runGradioTask(
+          FLUX_SCHNELL_BASE_API_URL,
+          [prompt, seed, false, width, height, steps],
+          2, // fn_index
+          5, // trigger_id
+          token
+      );
 
-      if (!data) throw new Error("error_invalid_response");
+      const data = output.data;
+      if (!data || !data[0] || !data[0].url) throw new Error("error_invalid_response");
 
       return {
         id: generateUUID(),
@@ -328,30 +394,36 @@ const generateQwenImage = async (
 
   return runWithTokenRetry(async (token) => {
     try {
-      const queue = await fetch(QWEN_IMAGE_BASE_API_URL + '/gradio_api/call/generate_image', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [prompt, seed || 42, seed === undefined, aspectRatio, 3, steps]
-        })
-      });
-      const { event_id } = await queue.json();
-      const response = await fetch(QWEN_IMAGE_BASE_API_URL + '/gradio_api/call/generate_image/' + event_id, {
-        headers: getAuthHeaders(token)
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
+      // Logic from legacy: [prompt, seed || 42, seed === undefined, aspectRatio, 3, steps]
+      const finalSeed = seed ?? 42;
+      const randomize = seed === undefined;
+      
+      const output: any = await runGradioTask(
+          QWEN_IMAGE_BASE_API_URL,
+          [prompt, finalSeed, randomize, aspectRatio, 3, steps],
+          1, // fn_index
+          6, // trigger_id
+          token
+      );
 
-      if (!data) throw new Error("error_invalid_response");
+      const data = output.data;
+      if (!data || !data[0] || !data[0].url) throw new Error("error_invalid_response");
+
+      // Extract actual seed if returned in message (legacy did string parsing)
+      // New format usually returns clean data, let's try to parse if available or fallback
+      let returnedSeed = finalSeed;
+      if (typeof data[1] === 'string' && data[1].includes('Seed')) {
+          returnedSeed = parseInt(data[1].replace('Seed used for generation: ', ''));
+      }
 
       return {
         id: generateUUID(),
         url: data[0].url,
-        model: 'qwen-image', // Standardized ID
+        model: 'qwen-image',
         prompt,
         aspectRatio,
         timestamp: Date.now(),
-        seed: parseInt(data[1].replace('Seed used for generation: ', '')),
+        seed: isNaN(returnedSeed) ? finalSeed : returnedSeed,
         steps
       };
     } catch (error) {
@@ -372,21 +444,16 @@ const generateOvisImage = async (
 
   return runWithTokenRetry(async (token) => {
     try {
-      const queue = await fetch(OVIS_IMAGE_BASE_API_URL + '/gradio_api/call/generate', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [prompt, height, width, seed, steps, 4]
-        })
-      });
-      const { event_id } = await queue.json();
-      const response = await fetch(OVIS_IMAGE_BASE_API_URL + '/gradio_api/call/generate/' + event_id, {
-        headers: getAuthHeaders(token)
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
+      const output: any = await runGradioTask(
+          OVIS_IMAGE_BASE_API_URL,
+          [prompt, height, width, seed, steps, 4],
+          2, // fn_index
+          5, // trigger_id
+          token
+      );
 
-      if (!data) throw new Error("error_invalid_response");
+      const data = output.data;
+      if (!data || !data[0] || !data[0].url) throw new Error("error_invalid_response");
 
       return {
         id: generateUUID(),
@@ -406,7 +473,7 @@ const generateOvisImage = async (
 };
 
 export const editImageQwen = async (
-  imageBlobs: Blob[],
+  imageBlobs: (Blob | string)[],
   prompt: string,
   width: number,
   height: number,
@@ -419,19 +486,28 @@ export const editImageQwen = async (
       const seed = Math.round(Math.random() * 2147483647);
 
       // 1. Upload all Blobs to Gradio first to get temporary paths
-      const imagePayloadPromises = imageBlobs.map(async (blob) => {
+      const imagePayloadPromises = imageBlobs.map(async (item) => {
+          let blob: Blob;
+          if (typeof item === 'string') {
+              if (item.startsWith('opfs://')) {
+                  blob = await fetchCloudBlob(item);
+              } else {
+                  blob = await fetchBlob(item);
+              }
+          } else {
+              blob = item;
+          }
           const path = await uploadToGradio(QWEN_IMAGE_EDIT_BASE_API_URL, blob, token, signal);
-          return { image: { path, meta: { _type: "gradio.FileData" } } };
+          // Need to include caption: null per spec, inside the nested structure
+          return { image: { path, meta: { _type: "gradio.FileData" } }, caption: null };
       });
       
       const imagePayload = await Promise.all(imagePayloadPromises);
 
       // 2. Call Inference
-      const queue = await fetch(QWEN_IMAGE_EDIT_BASE_API_URL + '/gradio_api/call/infer', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [
+      const output: any = await runGradioTask(
+          QWEN_IMAGE_EDIT_BASE_API_URL,
+          [
             imagePayload,
             prompt,
             seed,
@@ -441,24 +517,15 @@ export const editImageQwen = async (
             height,
             width,
             true // Rewrite prompt
-          ]
-        }),
-        signal
-      });
-      const { event_id } = await queue.json();
+          ],
+          0, // fn_index
+          12, // trigger_id
+          token,
+          signal
+      );
 
-      await sleep(30);
-
-      const response = await fetch(QWEN_IMAGE_EDIT_BASE_API_URL + '/gradio_api/call/infer/' + event_id, {
-        headers: {
-          "Accept": "text/event-stream",
-          ...getAuthHeaders(token)
-        },
-        signal
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
-
+      const data = output.data;
+      // Output format: [[{image:{url...}}]] (List of images)
       if (!data || !data[0] || !data[0][0]?.image?.url) {
           throw new Error("error_invalid_response");
       }
@@ -466,7 +533,7 @@ export const editImageQwen = async (
       return {
         id: generateUUID(),
         url: data[0][0].image.url,
-        model: 'qwen-image-edit', // Unified ID
+        model: 'qwen-image-edit',
         prompt,
         aspectRatio: 'custom',
         timestamp: Date.now(),
@@ -505,26 +572,25 @@ export const generateImage = async (
 };
 
 export const upscaler = async (url: string): Promise<{ url: string }> => {
+  // Fetch image as blob first to upload to Gradio
+  const blob = await fetchBlob(url);
+
   return runWithTokenRetry(async (token) => {
     try {
-      const queue = await fetch(UPSCALER_BASE_API_URL + '/gradio_api/call/realesrgan', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [{ "path": url, "meta": { "_type": "gradio.FileData" } }, 'RealESRGAN_x4plus', 0.5, false, 4]
-        })
-      });
-      const { event_id } = await queue.json();
+      // 1. Upload to Gradio
+      const filePath = await uploadToGradio(UPSCALER_BASE_API_URL, blob, token);
 
-      await sleep(30);
+      // 2. Call inference
+      const output: any = await runGradioTask(
+          UPSCALER_BASE_API_URL,
+          [{ "path": filePath, "meta": { "_type": "gradio.FileData" } }, 'RealESRGAN_x4plus', 0.5, false, 4],
+          1, // fn_index
+          17, // trigger_id
+          token
+      );
 
-      const response = await fetch(UPSCALER_BASE_API_URL + '/gradio_api/call/realesrgan/' + event_id, {
-        headers: getAuthHeaders(token)
-      });
-      const result = await response.text();
-      const data = extractCompleteEventData(result);
-
-      if (!data) throw new Error("error_invalid_response");
+      const data = output.data;
+      if (!data || !data[0] || !data[0].url) throw new Error("error_invalid_response");
 
       return { url: data[0].url };
     } catch (error) {
@@ -534,11 +600,11 @@ export const upscaler = async (url: string): Promise<{ url: string }> => {
   });
 };
 
-export const optimizePrompt = async (originalPrompt: string): Promise<string> => {
+export const optimizePrompt = async (originalPrompt: string, model: string = 'openai-fast'): Promise<string> => {
   try {
-    const model = getOptimizationModel('huggingface');
     // Append the fixed suffix to the user's custom system prompt
     const systemInstruction = getSystemPromptContent() + FIXED_SYSTEM_PROMPT_SUFFIX;
+    const apiModel = API_MODEL_MAP.huggingface[model] || model;
 
     const response = await fetch(POLLINATIONS_API_URL, {
       method: 'POST',
@@ -546,7 +612,7 @@ export const optimizePrompt = async (originalPrompt: string): Promise<string> =>
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model,
+        model: apiModel,
         messages: [
           {
             role: 'system',
@@ -588,59 +654,45 @@ export const createVideoTaskHF = async (imageInput: string | Blob, seed: number 
       let filePath = '';
       
       if (typeof imageInput === 'string') {
-          filePath = imageInput;
+          if (imageInput.startsWith('opfs://')) {
+              const blob = await fetchCloudBlob(imageInput);
+              filePath = await uploadToGradio(WAN2_VIDEO_API_URL, blob, token);
+          } else {
+              // Assume it's a remote URL accessible by Gradio, or a path already returned by uploadToGradio
+              filePath = imageInput;
+          }
       } else {
           filePath = await uploadToGradio(WAN2_VIDEO_API_URL, imageInput, token);
       }
 
-      // Step 1: POST to queue
-      const queue = await fetch(WAN2_VIDEO_API_URL + '/gradio_api/call/generate_video', {
-        method: "POST",
-        headers: getAuthHeaders(token),
-        body: JSON.stringify({
-          data: [
+      // Call Inference using Queue
+      const output: any = await runGradioTask(
+          WAN2_VIDEO_API_URL,
+          [
             { "path": filePath, "meta": { "_type": "gradio.FileData" } },
             settings.prompt,
-            settings.steps, // Steps from settings
+            settings.steps,
             VIDEO_NEGATIVE_PROMPT,
-            settings.duration, // Duration from settings
-            settings.guidance, // Guidance 1 from settings
-            settings.guidance, // Guidance 2 from settings
+            settings.duration,
+            settings.guidance, // 1st guidance
+            settings.guidance, // 2nd guidance
             finalSeed,
             false // Randomize seed
-          ]
-        })
-      });
-      const { event_id } = await queue.json();
+          ],
+          0, // fn_index
+          16, // trigger_id
+          token
+      );
 
-      await sleep(40);
-
-      // Step 2: Loop to check status. Since HF API relies on event stream which might be long-lived,
-      // we use fetch without abort controller to read the stream until it ends (server closes).
-      try {
-        // Standard fetch will wait for the response body to fully arrive if we use .text()
-        // This effectively waits for the stream to complete or close.
-        const response = await fetch(WAN2_VIDEO_API_URL + '/gradio_api/call/generate_video/' + event_id, {
-          headers: getAuthHeaders(token)
-        });
-
-        const text = await response.text();
-        const data = extractCompleteEventData(text);
-        
-        if (data) {
-            const vid = data[0];
-            if (vid?.video?.url) return vid.video.url;
-            if (vid?.url) return vid.url;
-            return vid;
-        }
-        
-        // If we reach here, the stream closed but no complete event was found.
-        // This could be a network glitch or server timeout. We retry the connection.
-      } catch (e: any) {
-        if (e.message === QUOTA_ERROR_KEY) throw e;
-        // Ignore other errors (timeout, network) and retry after sleep
-        console.warn("HF Video Stream interrupted, retrying...", e);
+      const data = output.data;
+      if (data && data[0]) {
+          const vid = data[0];
+          if (vid?.video?.url) return vid.video.url;
+          if (vid?.url) return vid.url;
+          return vid;
       }
+      
+      throw new Error("No video output returned");
 
     } catch (error) {
       console.error("Create Video Task HF Error:", error);

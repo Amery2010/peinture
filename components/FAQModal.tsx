@@ -1,18 +1,39 @@
 
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, KeyRound, HelpCircle, ExternalLink, Shield, Zap, Database, Globe, CloudUpload, Github, Languages, Wand2, Film, PencilRuler, HardDrive } from 'lucide-react';
+import { useAppStore } from '../store/appStore';
+import { translations } from '../translations';
 
 interface FAQModalProps {
     isOpen: boolean;
     onClose: () => void;
-    t: any;
 }
 
-export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose, t }) => {
+export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose }) => {
+    const { language } = useAppStore();
+    const t = translations[language];
     const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-    if (!isOpen) return null;
+    // Animation State
+    const [isRendered, setIsRendered] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsRendered(true);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => setIsVisible(true));
+            });
+        } else {
+            setIsVisible(false);
+            const timer = setTimeout(() => {
+                setIsRendered(false);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
+    if (!isRendered) return null;
 
     const toggleAccordion = (index: number) => {
         setOpenIndex(openIndex === index ? null : index);
@@ -93,6 +114,11 @@ export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose, t }) => {
             answer: t.faq_a10
         },
         {
+            icon: <Database className="w-5 h-5 text-teal-400" />,
+            question: t.faq_q11,
+            answer: t.faq_a11
+        },
+        {
             icon: <CloudUpload className="w-5 h-5 text-orange-400" />,
             question: t.faq_q5,
             answer: t.faq_a5
@@ -100,8 +126,15 @@ export const FAQModal: React.FC<FAQModalProps> = ({ isOpen, onClose, t }) => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-3 md:px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-             <div className="w-full max-w-2xl bg-[#0D0B14]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_0_50px_-12px_rgba(124,58,237,0.15)] ring-1 ring-white/[0.05] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col h-[85vh] md:h-auto md:max-h-[85vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-3 md:px-4">
+             {/* Backdrop: Immediate In, Delayed Out */}
+             <div 
+                className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${isVisible ? 'opacity-100' : 'opacity-0 delay-200'}`}
+                onClick={onClose}
+             />
+
+             {/* Modal: Delayed In, Immediate Out */}
+             <div className={`relative w-full max-w-2xl bg-[#0D0B14]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[0_0_50px_-12px_rgba(124,58,237,0.15)] ring-1 ring-white/[0.05] overflow-hidden flex flex-col h-[85vh] md:h-auto md:max-h-[85vh] transition-all duration-300 cubic-bezier(0.16, 1, 0.3, 1) ${isVisible ? 'scale-100 opacity-100 translate-y-0 delay-100' : 'scale-95 opacity-0 translate-y-4'}`}>
                 <div className="flex items-center justify-between px-4 py-2 md:px-5 border-b border-white/[0.06] bg-white/[0.02] flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-500/10 rounded-lg">

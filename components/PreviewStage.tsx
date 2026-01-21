@@ -1,9 +1,11 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { ImageComparison } from './ImageComparison';
 import { Paintbrush, AlertCircle, Sparkles, X, Film, Image as ImageIcon } from 'lucide-react';
 import { GeneratedImage } from '../types';
+import { useAppStore } from '../store/appStore';
+import { translations } from '../translations';
 
 interface PreviewStageProps {
     currentImage: GeneratedImage | null;
@@ -18,7 +20,6 @@ interface PreviewStageProps {
     setShowInfo: (val: boolean) => void;
     imageDimensions: { width: number, height: number } | null;
     setImageDimensions: (val: { width: number, height: number } | null) => void;
-    t: any;
     children?: React.ReactNode;
     // New Props for Live
     isLiveMode?: boolean;
@@ -35,19 +36,61 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({
     onCloseError,
     isComparing,
     tempUpscaledImage,
-    showInfo,
-    setShowInfo,
-    imageDimensions,
     setImageDimensions,
-    t,
     children,
     isLiveMode,
     onToggleLiveMode,
     isGeneratingVideoPrompt
 }) => {
+    const { language } = useAppStore();
+    const t = translations[language];
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    const isLiveGenerating = currentImage?.videoStatus === 'generating';
+    // -- Animation Logic State --
+    // We buffer the image to display so we can animate the old one fading out
+    // before swapping to the new one.
+    const [displayImage, setDisplayImage] = useState<GeneratedImage | null>(currentImage);
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    useEffect(() => {
+        // If the ID changes (different image selected)
+        if (currentImage?.id !== displayImage?.id) {
+            // 1. Start Fade Out
+            setIsTransitioning(true);
+
+            const timer = setTimeout(() => {
+                // 2. Swap Data after fade out completes (500ms matches CSS duration)
+                setDisplayImage(currentImage);
+                // The fade-in will be triggered by the else block in the next render cycle when IDs match
+            }, 300);
+
+            return () => clearTimeout(timer);
+        } else {
+            // IDs match (or both are null)
+            
+            // 3. Fade In: If we were transitioning (e.g. just swapped, or cancelled navigation), turn off transition
+            if (isTransitioning) {
+                requestAnimationFrame(() => {
+                   setIsTransitioning(false);
+                });
+            }
+            
+            // Immediate update if we are just updating properties of the SAME image 
+            // (e.g., upscale status changed, blur toggled, video generation finished), no fade needed.
+            if (currentImage !== displayImage) {
+                setDisplayImage(currentImage);
+            }
+        }
+    }, [currentImage, displayImage, isTransitioning]);
+
+    // Ensure display image is synced on initial mount if state was initialized with null but prop has value
+    useEffect(() => {
+        if (!displayImage && currentImage) {
+            setDisplayImage(currentImage);
+        }
+    }, []); // Only on mount
+
+    const isLiveGenerating = displayImage?.videoStatus === 'generating';
 
     return (
         <section className="relative w-full flex flex-col h-[360px] md:h-[480px] items-center justify-center bg-black/20 rounded-xl backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/20 overflow-hidden relative group">
@@ -82,26 +125,30 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({
                     <h3 className="text-xl font-bold text-white mb-2">{t.generationFailed}</h3>
                     <p className="text-white/60">{error}</p>
                 </div>
-            ) : currentImage ? (
-                <div className="w-full h-full flex items-center justify-center bg-black/40 animate-in zoom-in-95 duration-500 relative">
+            ) : displayImage ? (
+                <div 
+                    // Removed key={currentImage.id} to allow internal CSS transition
+                    // Removed bg-black/40 to make background transparent
+                    className={`w-full h-full flex items-center justify-center relative transition-opacity duration-300 ease-in-out ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+                >
 
                     {/* Image View, Comparison View, or Video View */}
                     {isComparing && tempUpscaledImage ? (
                         <div className="w-full h-full">
                             <ImageComparison
-                                beforeImage={currentImage.url}
+                                beforeImage={displayImage.url}
                                 afterImage={tempUpscaledImage}
-                                alt={currentImage.prompt}
+                                alt={displayImage.prompt}
                                 labelBefore={t.compare_original}
                                 labelAfter={t.compare_upscaled}
                             />
                         </div>
-                    ) : isLiveMode && currentImage.videoUrl ? (
+                    ) : isLiveMode && displayImage.videoUrl ? (
                         <div className="w-full h-full flex items-center justify-center">
                             <video
                                 ref={videoRef}
-                                src={currentImage.videoUrl}
-                                className={`max-w-full max-h-full object-contain shadow-2xl transition-all duration-300 ${currentImage.isBlurred ? 'blur-lg scale-105' : ''}`}
+                                src={displayImage.videoUrl}
+                                className={`max-w-full max-h-full object-contain shadow-2xl transition-all duration-300 ${displayImage.isBlurred ? 'blur-lg scale-105' : ''}`}
                                 autoPlay
                                 loop
                                 playsInline
@@ -113,7 +160,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({
                             minScale={1}
                             maxScale={8}
                             centerOnInit={true}
-                            key={currentImage.id} // Forces component reset on new image
+                            key={displayImage.id} // Keep key here to reset Zoom state on image swap
                             wheel={{ step: 0.5 }}
                         >
                             <TransformComponent
@@ -121,9 +168,9 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({
                                 contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
                             >
                                 <img
-                                    src={currentImage.url}
-                                    alt={currentImage.prompt}
-                                    className={`max-w-full max-h-full object-contain shadow-2xl cursor-grab active:cursor-grabbing transition-all duration-300 ${currentImage.isBlurred ? 'blur-lg scale-105' : ''}`}
+                                    src={displayImage.url}
+                                    alt={displayImage.prompt}
+                                    className={`max-w-full max-h-full object-contain shadow-2xl cursor-grab active:cursor-grabbing transition-all duration-300 ${displayImage.isBlurred ? 'blur-lg scale-105' : ''}`}
                                     onContextMenu={(e) => e.preventDefault()}
                                     onLoad={(e) => {
                                         setImageDimensions({
@@ -145,7 +192,7 @@ export const PreviewStage: React.FC<PreviewStageProps> = ({
                     )}
                     
                     {/* Live/Image Toggle Button (Top Right, persistent if video exists) */}
-                    {currentImage.videoStatus === 'success' && currentImage.videoUrl && !isComparing && (
+                    {displayImage.videoStatus === 'success' && displayImage.videoUrl && !isComparing && (
                          <div className="absolute top-4 right-4 z-20">
                              <button
                                 onClick={onToggleLiveMode}

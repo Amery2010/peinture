@@ -1,6 +1,6 @@
 
 import { GeneratedImage, AspectRatioOption, ModelOption } from "../types";
-import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX, getOptimizationModel, getVideoSettings } from "./utils";
+import { generateUUID, getSystemPromptContent, FIXED_SYSTEM_PROMPT_SUFFIX, getVideoSettings } from "./utils";
 import { API_MODEL_MAP } from "../constants";
 
 const GITEE_GENERATE_API_URL = "https://ai.gitee.com/v1/images/generations";
@@ -303,10 +303,9 @@ export const editImageGitee = async (
   });
 };
 
-export const optimizePromptGitee = async (originalPrompt: string): Promise<string> => {
+export const optimizePromptGitee = async (originalPrompt: string, model: string = 'deepseek-3_2'): Promise<string> => {
   return runWithGiteeTokenRetry(async (token) => {
     try {
-      const model = getOptimizationModel('gitee');
       // Append the fixed suffix to the user's custom system prompt
       const systemInstruction = getSystemPromptContent() + FIXED_SYSTEM_PROMPT_SUFFIX;
       const apiModel = API_MODEL_MAP.gitee[model] || model;

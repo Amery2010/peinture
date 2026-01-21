@@ -6,7 +6,9 @@ import { Tooltip } from './Tooltip';
 import { GeneratedImage, ProviderOption } from '../types';
 import { isStorageConfigured } from '../services/storageService';
 import { getCustomProviders } from '../services/utils';
-import { HF_MODEL_OPTIONS, GITEE_MODEL_OPTIONS, MS_MODEL_OPTIONS } from '../constants';
+import { HF_MODEL_OPTIONS, GITEE_MODEL_OPTIONS, MS_MODEL_OPTIONS, A4F_MODEL_OPTIONS } from '../constants';
+import { useAppStore } from '../store/appStore';
+import { translations } from '../translations';
 
 interface ImageToolbarProps {
     currentImage: GeneratedImage | null;
@@ -21,7 +23,6 @@ interface ImageToolbarProps {
     handleDelete: () => void;
     handleCancelUpscale: () => void;
     handleApplyUpscale: () => void;
-    t: any;
     // New Props for Live
     isLiveMode?: boolean;
     onLiveClick?: () => void;
@@ -51,7 +52,6 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
     handleDelete,
     handleCancelUpscale,
     handleApplyUpscale,
-    t,
     isLiveMode,
     onLiveClick,
     isLiveGenerating,
@@ -64,6 +64,8 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
     copiedPrompt,
     handleCopyPrompt
 }) => {
+    const { language } = useAppStore();
+    const t = translations[language];
     const [isStorageEnabled, setIsStorageEnabled] = useState(false);
 
     useEffect(() => {
@@ -105,6 +107,7 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
         if (!providerId) return 'Hugging Face';
         if (providerId === 'gitee') return 'Gitee AI';
         if (providerId === 'modelscope') return 'Model Scope';
+        if (providerId === 'a4f') return 'A4F';
         if (providerId === 'huggingface') return 'Hugging Face';
         
         // Check Custom Providers
@@ -115,7 +118,7 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
 
     const getModelLabel = (modelValue: string, providerId?: string) => {
         // First check standard lists
-        const option = [...HF_MODEL_OPTIONS, ...GITEE_MODEL_OPTIONS, ...MS_MODEL_OPTIONS].find(o => o.value === modelValue);
+        const option = [...HF_MODEL_OPTIONS, ...GITEE_MODEL_OPTIONS, ...MS_MODEL_OPTIONS, ...A4F_MODEL_OPTIONS].find(o => o.value === modelValue);
         if (option) return option.label;
 
         // Then check custom provider models if available
@@ -254,7 +257,7 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
                         </div>
                     )}
 
-                    <div className="max-w-[90vw] overflow-x-auto scrollbar-hide rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 shadow-2xl transition-opacity duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                    <div className="max-w-[90vw] overflow-x-auto md:overflow-visible scrollbar-hide rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 shadow-2xl transition-opacity duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                         <div className="flex items-center gap-1 p-1.5 min-w-max">
 
                             <Tooltip content={t.details}>
@@ -358,7 +361,7 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
                                 <button
                                     onClick={handleDownload}
                                     disabled={isDownloading}
-                                    className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isDownloading ? 'text-purple-400 bg-purple-500/10 cursor-not-allowed' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                                    className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${isDownloading ? 'text-blue-400 bg-blue-500/10 cursor-not-allowed' : 'text-white/70 hover:text-blue-400 hover:bg-white/10'}`}
                                 >
                                     {isDownloading ? (
                                         <LucideLoader2 className="w-5 h-5 animate-spin" />
@@ -368,10 +371,12 @@ export const ImageToolbar: React.FC<ImageToolbarProps> = ({
                                 </button>
                             </Tooltip>
 
+                            <div className="w-px h-5 bg-white/10 mx-1"></div>
+
                             <Tooltip content={t.delete}>
                                 <button
                                     onClick={handleDelete}
-                                    className="flex items-center justify-center w-10 h-10 rounded-xl text-white/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                                    className="flex items-center justify-center w-10 h-10 rounded-xl text-white/70 hover:text-red-400 hover:bg-white/10 transition-all hover:bg-red-500/10"
                                 >
                                     <LucideTrash2 className="w-5 h-5" />
                                 </button>

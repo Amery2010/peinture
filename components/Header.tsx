@@ -1,7 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Logo } from './Icons';
 import { Tooltip } from './Tooltip';
+import { useAppStore } from '../store/appStore';
+import { translations } from '../translations';
 import {
   Sparkles,
   Settings,
@@ -12,25 +14,20 @@ import {
   Check,
   Image as ImageIcon
 } from 'lucide-react';
-import { isStorageConfigured } from '../services/storageService';
 
 export type AppView = 'creation' | 'editor' | 'gallery';
 
 interface HeaderProps {
-  currentView: AppView;
-  setCurrentView: (view: AppView) => void;
   onOpenSettings: () => void;
   onOpenFAQ: () => void;
-  t: any;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  currentView, 
-  setCurrentView, 
   onOpenSettings, 
-  onOpenFAQ,
-  t 
+  onOpenFAQ
 }) => {
+  const { language, currentView, setCurrentView } = useAppStore();
+  const t = translations[language];
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
@@ -145,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
           <Tooltip content={t.sourceCode} position="bottom">
               <a
                 href="https://github.com/Amery2010/peinture"
-                className="flex items-center justify-center p-2 rounded-lg text-white/70 hover:text-purple-400 hover:bg-white/10 transition-all active:scale-95"
+                className="flex items-center justify-center p-2 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/10 transition-all active:scale-95"
                 target="_blank"
               >
                 <Github className="w-5 h-5" />

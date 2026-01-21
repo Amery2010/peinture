@@ -2,14 +2,16 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { GeneratedImage } from '../types';
 import { ChevronLeft, ChevronRight, Film, Loader2 } from 'lucide-react';
+import { useAppStore } from '../store/appStore';
 
 interface HistoryGalleryProps {
-  images: GeneratedImage[];
   onSelect: (image: GeneratedImage) => void;
-  selectedId?: string;
 }
 
-export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ images, onSelect, selectedId }) => {
+export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ onSelect }) => {
+  const { history, currentImage } = useAppStore();
+  const selectedId = currentImage?.id;
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -25,7 +27,7 @@ export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ images, onSelect
   };
 
   useEffect(() => {
-    // Force reset scroll to start (0) whenever images change.
+    // Force reset scroll to start (0) whenever history changes (new generation)
     const timer = setTimeout(() => {
         if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollLeft = 0;
@@ -38,7 +40,7 @@ export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ images, onSelect
         window.removeEventListener('resize', checkScroll);
         clearTimeout(timer);
     };
-  }, [images]);
+  }, [history]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -54,7 +56,7 @@ export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ images, onSelect
     }
   };
 
-  if (images.length === 0) return null;
+  if (history.length === 0) return null;
 
   return (
     <div className="relative mt-4 w-full">
@@ -74,7 +76,7 @@ export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ images, onSelect
                 onScroll={checkScroll}
                 className="flex items-center gap-3 p-3 overflow-x-auto scrollbar-hide snap-x"
             >
-            {images.map((img) => (
+            {history.map((img) => (
                 <div
                 key={img.id}
                 onClick={() => onSelect(img)}

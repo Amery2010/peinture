@@ -1,9 +1,14 @@
 
 import { S3Config, CloudFile, WebDAVConfig, StorageType } from "../types";
+// @ts-ignore
+import { dir, file, write } from 'opfs-tools';
 
 const S3_CONFIG_KEY = 'app_s3_config';
 const WEBDAV_CONFIG_KEY = 'app_webdav_config';
 const STORAGE_TYPE_KEY = 'app_storage_type';
+
+const OPFS_TMP_DIR = '/tmp';
+const OPFS_GALLERY_DIR = '/gallery';
 
 export const DEFAULT_S3_CONFIG: S3Config = {
     accessKeyId: '',
@@ -51,9 +56,9 @@ export const getWebDAVConfig = (): WebDAVConfig => {
 };
 
 export const getStorageType = (): StorageType => {
-    if (typeof localStorage === 'undefined') return 'off';
+    if (typeof localStorage === 'undefined') return 'opfs';
     const type = localStorage.getItem(STORAGE_TYPE_KEY) as StorageType;
-    return ['off', 's3', 'webdav'].includes(type) ? type : 'off';
+    return ['s3', 'webdav', 'opfs'].includes(type) ? type : 'opfs';
 };
 
 export const saveS3Config = (config: S3Config) => {
@@ -86,6 +91,7 @@ export const isStorageConfigured = (): boolean => {
     const type = getStorageType();
     if (type === 's3') return isS3Configured(getS3Config());
     if (type === 'webdav') return isWebDAVConfigured(getWebDAVConfig());
+    if (type === 'opfs') return true;
     return false;
 };
 
@@ -208,6 +214,9 @@ export const uploadToCloud = async (
     } else if (type === 'webdav') {
         const config = getWebDAVConfig();
         fileUrl = await uploadToWebDAV(finalBlob, finalFileName, config);
+    } else if (type === 'opfs') {
+        // Upload to Gallery directory for cloud storage flow
+        fileUrl = await uploadToOPFSGallery(finalBlob, finalFileName);
     } else {
         throw new Error("error_storage_config_missing");
     }
@@ -228,6 +237,8 @@ export const uploadToCloud = async (
             } else if (type === 'webdav') {
                 const config = getWebDAVConfig();
                 await uploadToWebDAV(jsonBlob, metadataFileName, config);
+            } else if (type === 'opfs') {
+                await uploadToOPFSGallery(jsonBlob, metadataFileName);
             }
         } catch (e) {
             console.error("Failed to upload metadata JSON", e);
@@ -246,12 +257,20 @@ export const listCloudFiles = async (): Promise<CloudFile[]> => {
     } else if (type === 'webdav') {
         const config = getWebDAVConfig();
         return listWebDAVFiles(config);
+    } else if (type === 'opfs') {
+        return listOPFSGalleryFiles();
     }
     return [];
 };
 
 export const fetchCloudBlob = async (url: string): Promise<Blob> => {
     const type = getStorageType();
+    
+    // Explicit OPFS protocol handling
+    if (url.startsWith('opfs://')) {
+        return fetchOPFSBlob(url);
+    }
+
     let headers: Record<string, string> = {};
 
     if (type === 'webdav') {
@@ -350,6 +369,8 @@ export const deleteCloudFile = async (keyOrUrl: string): Promise<void> => {
         } else if (type === 'webdav') {
             const config = getWebDAVConfig();
             await deleteWebDAVFile(config, jsonKeyOrUrl).catch(() => {});
+        } else if (type === 'opfs') {
+            await deleteOPFSGalleryFile(jsonKeyOrUrl).catch(() => {});
         }
     } catch (e) {
         console.warn("Metadata delete failed, ignoring", e);
@@ -361,6 +382,8 @@ export const deleteCloudFile = async (keyOrUrl: string): Promise<void> => {
     } else if (type === 'webdav') {
         const config = getWebDAVConfig();
         return deleteWebDAVFile(config, keyOrUrl);
+    } else if (type === 'opfs') {
+        return deleteOPFSGalleryFile(keyOrUrl);
     }
 };
 
@@ -373,6 +396,19 @@ export const renameCloudFile = async (oldKeyOrUrl: string, newKeyOrUrl: string):
     } else if (type === 'webdav') {
         const config = getWebDAVConfig();
         await performWebDAVRename(config, oldKeyOrUrl, newKeyOrUrl);
+    } else if (type === 'opfs') {
+        // OPFS rename: Read, Write New, Delete Old
+        // Ensure we read from gallery directory if input is just a filename
+        const readUrl = oldKeyOrUrl.startsWith('opfs://') || oldKeyOrUrl.startsWith('/') 
+            ? oldKeyOrUrl 
+            : `opfs://${OPFS_GALLERY_DIR}/${oldKeyOrUrl}`;
+            
+        const blob = await fetchOPFSBlob(readUrl);
+        const newFileName = newKeyOrUrl.split('/').pop() || newKeyOrUrl;
+        await uploadToOPFSGallery(blob, newFileName);
+        // Extract filename from URL/path
+        const oldFileName = oldKeyOrUrl.replace('opfs://', '').replace(`${OPFS_GALLERY_DIR}/`, '').split('/').pop();
+        if (oldFileName) await deleteOPFSGalleryFile(oldFileName);
     }
 };
 
@@ -411,6 +447,131 @@ const performWebDAVRename = async (config: WebDAVConfig, oldKeyOrUrl: string, ne
     if (!response.ok && response.status !== 201 && response.status !== 204) {
          throw new Error(`WebDAV Rename Failed: ${response.status}`);
     }
+};
+
+// --- OPFS Operations (Updated for Structure) ---
+
+// Init directories
+export const initOpfsDirs = async () => {
+    try {
+        await dir(OPFS_TMP_DIR).create();
+        await dir(OPFS_GALLERY_DIR).create();
+    } catch (e) {
+        console.error("Failed to init OPFS dirs", e);
+    }
+};
+
+export const clearOPFS = async () => {
+    const root = dir('/');
+    const children = await root.children();
+    for (const child of children) {
+        await child.remove();
+    }
+    // Re-init directories after clear
+    await initOpfsDirs();
+};
+
+// -- TMP Directory Operations --
+
+export const saveTempFileToOPFS = async (blob: Blob, fileName: string) => {
+    await initOpfsDirs(); // Ensure exists
+    const buffer = await blob.arrayBuffer();
+    await write(`${OPFS_TMP_DIR}/${fileName}`, buffer);
+    return `opfs://${OPFS_TMP_DIR}/${fileName}`;
+};
+
+export const renameTempFileFromOPFS = async (oldFileName: string, newFileName: string) => {
+    try {
+        const oldFile = file(`${OPFS_TMP_DIR}/${oldFileName}`);
+        if (await oldFile.exists()) {
+            const buffer = await oldFile.arrayBuffer();
+            await write(`${OPFS_TMP_DIR}/${newFileName}`, buffer);
+            await oldFile.remove();
+            return true;
+        }
+    } catch (e) {
+        console.warn("Rename tmp failed", e);
+    }
+    return false;
+};
+
+export const readTempFileFromOPFS = async (fileName: string): Promise<Blob | null> => {
+    try {
+        const f = file(`${OPFS_TMP_DIR}/${fileName}`);
+        if (!await f.exists()) return null;
+        return new Blob([await f.arrayBuffer()]);
+    } catch (e) {
+        console.warn(`Failed to read tmp file ${fileName}`, e);
+        return null;
+    }
+};
+
+export const deleteTempFileFromOPFS = async (fileName: string) => {
+    try {
+        const f = file(`${OPFS_TMP_DIR}/${fileName}`);
+        if (await f.exists()) await f.remove();
+    } catch (e) {
+        console.warn(`Failed to delete tmp file ${fileName}`, e);
+    }
+};
+
+// -- Gallery Directory Operations --
+
+const uploadToOPFSGallery = async (blob: Blob, fileName: string) => {
+    await initOpfsDirs();
+    const buffer = await blob.arrayBuffer();
+    await write(`${OPFS_GALLERY_DIR}/${fileName}`, buffer);
+    return `opfs://${OPFS_GALLERY_DIR}/${fileName}`;
+};
+
+const listOPFSGalleryFiles = async () => {
+    await initOpfsDirs();
+    const root = await navigator.storage.getDirectory();
+    // Navigate to gallery dir manually via handle
+    const galleryHandle = await root.getDirectoryHandle('gallery', { create: true });
+    
+    const files: CloudFile[] = [];
+    
+    // @ts-ignore
+    for await (const [name, handle] of galleryHandle.entries()) {
+        if (handle.kind === 'file') {
+             const f = await (handle as FileSystemFileHandle).getFile();
+             const key = name;
+             const lowerKey = key.toLowerCase();
+             let type: 'image' | 'video' | 'unknown' = 'unknown';
+             if (lowerKey.match(/\.(jpg|jpeg|png|webp|gif)$/)) type = 'image';
+             else if (lowerKey.match(/\.(mp4|webm|mov)$/)) type = 'video';
+             
+             if (type !== 'unknown') {
+                 files.push({
+                     key,
+                     lastModified: new Date(f.lastModified),
+                     size: f.size,
+                     url: `opfs://${OPFS_GALLERY_DIR}/${key}`,
+                     type
+                 });
+             }
+        }
+    }
+    return files;
+};
+
+const fetchOPFSBlob = async (url: string) => {
+    // URL format: opfs://path/to/file or just absolute path logic
+    const path = url.replace('opfs://', ''); // Remove protocol
+    // Ensure path starts with / if not present (write logic uses absolute paths)
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    const f = file(normalizedPath);
+    if (!await f.exists()) throw new Error('File not found in OPFS');
+    return new Blob([await f.arrayBuffer()]);
+};
+
+const deleteOPFSGalleryFile = async (key: string) => {
+    // Key is filename
+    // Handle if key is full URL or just filename
+    const fileName = key.replace(`opfs://${OPFS_GALLERY_DIR}/`, '');
+    await file(`${OPFS_GALLERY_DIR}/${fileName}`).remove();
 };
 
 // --- S3 Operations (Internal) ---
@@ -939,41 +1100,10 @@ export const testWebDAVConnection = async (config: WebDAVConfig): Promise<{ succ
         });
 
         if (!rootResponse.ok) {
-             return { success: false, message: `Connection failed: ${rootResponse.status} ${rootResponse.statusText}` };
+            return { success: false, message: `Connection failed: ${rootResponse.status}` };
         }
+        return { success: true, message: "Connection successful" };
     } catch (e: any) {
         return { success: false, message: `Connection error: ${e.message}` };
-    }
-
-    const dir = config.directory || 'peinture';
-    const dirUrl = joinPath(config.url, dir);
-
-    try {
-        const dirResponse = await fetch(dirUrl, {
-            method: 'PROPFIND',
-            headers: {
-                ...getWebDAVHeaders(config),
-                'Depth': '0'
-            }
-        });
-
-        if (dirResponse.ok) {
-            return { success: true, message: "Connection successful. Directory exists." };
-        } else if (dirResponse.status === 404) {
-            const mkcolResponse = await fetch(dirUrl, {
-                method: 'MKCOL',
-                headers: getWebDAVHeaders(config)
-            });
-
-            if (mkcolResponse.ok || mkcolResponse.status === 201) {
-                return { success: true, message: "Connection successful. Directory created." };
-            } else {
-                return { success: false, message: `Failed to create directory: ${mkcolResponse.status}` };
-            }
-        } else {
-            return { success: false, message: `Directory check failed: ${dirResponse.status}` };
-        }
-    } catch (e: any) {
-        return { success: false, message: `Directory operation error: ${e.message}` };
     }
 };

@@ -1,5 +1,5 @@
 
-import { CustomProvider, ServiceMode } from "../types";
+import { CustomProvider, ServiceMode, VideoSettings } from "../types";
 
 export function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -79,33 +79,6 @@ export const saveTranslationPromptContent = (content: string) => {
   }
 };
 
-// --- Optimization Model Management (Deprecated in favor of generic config, but kept for compat) ---
-
-export const DEFAULT_OPTIMIZATION_MODELS: Record<string, string> = {
-  huggingface: 'openai-fast',
-  gitee: 'deepseek-3_2',
-  modelscope: 'deepseek-3_2'
-};
-
-const OPTIM_MODEL_STORAGE_PREFIX = 'optim_model_';
-
-export const getOptimizationModel = (provider: string): string => {
-  if (typeof localStorage === 'undefined') return DEFAULT_OPTIMIZATION_MODELS[provider] || 'openai-fast';
-  return localStorage.getItem(OPTIM_MODEL_STORAGE_PREFIX + provider) || DEFAULT_OPTIMIZATION_MODELS[provider] || 'openai-fast';
-};
-
-export const saveOptimizationModel = (provider: string, model: string) => {
-  if (typeof localStorage !== 'undefined') {
-      const defaultModel = DEFAULT_OPTIMIZATION_MODELS[provider];
-      // If saving default content or empty, remove the key to fallback to default
-      if (model === defaultModel || !model.trim()) {
-          localStorage.removeItem(OPTIM_MODEL_STORAGE_PREFIX + provider);
-      } else {
-          localStorage.setItem(OPTIM_MODEL_STORAGE_PREFIX + provider, model.trim());
-      }
-  }
-};
-
 // --- Unified Model Configuration ---
 
 const EDIT_MODEL_KEY = 'app_edit_model_config';
@@ -171,13 +144,6 @@ export const saveUpscalerModelConfig = (value: string) => {
 
 // --- Video Settings Management ---
 
-export interface VideoSettings {
-  prompt: string;
-  duration: number; // in seconds
-  steps: number;
-  guidance: number;
-}
-
 export const DEFAULT_VIDEO_SETTINGS: Record<string, VideoSettings> = {
   huggingface: {
     prompt: "make this image come alive, cinematic motion, smooth animation",
@@ -192,6 +158,12 @@ export const DEFAULT_VIDEO_SETTINGS: Record<string, VideoSettings> = {
     guidance: 4
   },
   modelscope: {
+    prompt: "make this image come alive, cinematic motion, smooth animation",
+    duration: 3,
+    steps: 10,
+    guidance: 4
+  },
+  a4f: {
     prompt: "make this image come alive, cinematic motion, smooth animation",
     duration: 3,
     steps: 10,
@@ -388,54 +360,89 @@ export const fetchBlob = async (url: string): Promise<Blob> => {
 
 /**
  * Unified function to download an image from a URL.
- * - PC: Uses <a> tag with 'download' attribute.
- * - Mobile: Fetches Blob -> Tries navigator.share -> Falls back to ObjectURL download.
+ * - Non-mobile:
+ *   - If local (blob/data) or remote: creates <a> tag to download.
+ * - Mobile:
+ *   - If local: Fetch Blob -> Share -> Fallback to ObjectURL download.
+ *   - If remote: Creates <a> tag (direct download).
+ * - Fallback: window.open
  */
 export const downloadImage = async (url: string, fileName: string) => {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isLocal = url.startsWith('blob:') || url.startsWith('data:');
 
-    if (!isMobile) {
-        // Desktop: Direct download via <a> tag
+    // Helper to trigger download via anchor tag
+    const triggerAnchorDownload = (href: string, name: string) => {
         const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
+        link.href = href;
+        link.download = name;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    } else {
-        // Mobile: Fetch Blob -> Share -> ObjectURL
+    };
+
+    if (isMobile && isLocal) {
+        let downloadUrl: string | null = null;
         try {
             const blob = await fetchBlob(url);
             const file = new File([blob], fileName, { type: blob.type });
             const nav = navigator as any;
 
+            // 1. Try Share
             if (nav.canShare && nav.canShare({ files: [file] })) {
                 try {
                     await nav.share({
                         files: [file],
                         title: 'Peinture Image',
                     });
-                    return;
+                    return; // Share successful
                 } catch (e: any) {
-                    if (e.name === 'AbortError') return;
+                    if (e.name === 'AbortError') return; // User cancelled
                     console.warn("Share failed, falling back to download", e);
                 }
             }
 
-            // Fallback to ObjectURL download
-            const blobUrl = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+            // 2. Fallback to ObjectURL Download
+            downloadUrl = URL.createObjectURL(blob);
+            triggerAnchorDownload(downloadUrl, fileName);
+            
+            // Cleanup
+            setTimeout(() => {
+                if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+            }, 1000);
 
         } catch (e) {
+            console.error("Mobile local download failed", e);
+            // 3. Final Fallback: Window Open
+            const target = downloadUrl || url;
+            window.open(target, '_blank');
+            if (downloadUrl) {
+                setTimeout(() => URL.revokeObjectURL(downloadUrl!), 1000);
+            }
+        }
+    } else {
+        // Desktop or Mobile Remote
+        try {
+            triggerAnchorDownload(url, fileName);
+        } catch (e) {
             console.error("Download failed", e);
-            // Final fallback: just open in new tab
             window.open(url, '_blank');
         }
     }
+};
+
+export const getExtensionFromUrl = (url: string): string | null => {
+    let path = url;
+    try {
+        const urlObj = new URL(url);
+        path = urlObj.pathname;
+    } catch (e) { /* ignore */ }
+
+    if (url.includes('gradio_api/file=')) {
+        const parts = url.split('gradio_api/file=');
+        if (parts.length > 1) path = parts[1];
+    }
+    path = path.split('?')[0];
+    const match = path.match(/\.([a-zA-Z0-9]+)$/);
+    return match ? match[1] : null;
 };

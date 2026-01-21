@@ -52,6 +52,10 @@ export const translations = {
     msTokenHelp: "Required. Provide multiple tokens. Get",
     msTokenLink: "Access Token",
     msTokenHelpEnd: "from dashboard.",
+    a4fToken: "Access Token",
+    a4fTokenHelp: "Required. Provide multiple tokens. Get",
+    a4fTokenLink: "API Keys",
+    a4fTokenHelpEnd: "from dashboard.",
     tokenTotal: "Total",
     tokenActive: "Active",
     tokenExhausted: "Exhausted",
@@ -105,6 +109,7 @@ export const translations = {
     storage_off: "Off",
     storage_s3: "S3 Storage",
     storage_webdav: "WebDAV",
+    storage_opfs: "Local (OPFS)",
     
     s3_access_key: "Access Key ID",
     s3_secret_key: "Secret Access Key",
@@ -150,6 +155,7 @@ export const translations = {
     provider_huggingface: "Hugging Face",
     provider_gitee: "Gitee AI",
     provider_modelscope: "Model Scope",
+    provider_a4f: "A4F",
     
     // Custom Providers
     add_provider: "Add Provider",
@@ -184,6 +190,8 @@ export const translations = {
     error_gitee_token_exhausted: "All configured Gitee AI tokens have exhausted their daily quota or are invalid.",
     error_ms_token_required: "Model Scope Token is required. Please set it in Settings.",
     error_ms_token_exhausted: "All configured Model Scope tokens have exhausted their daily quota or are invalid.",
+    error_a4f_token_required: "A4F Token is required. Please set it in Settings.",
+    error_a4f_token_exhausted: "All configured A4F tokens have exhausted their daily quota or are invalid.",
     error_api_connection: "API connection failed. Please check your network or token.",
     error_invalid_response: "Invalid response from the server.",
     error_prompt_optimization_failed: "Failed to optimize prompt. Please try again.",
@@ -225,6 +233,8 @@ export const translations = {
     faq_a9: "The Image Editor allows you to modify existing images using AI. You can draw on a transparent layer (using Brush or Rectangle tools) to indicate where you want changes, then provide an AI command. The system merges your drawings with the original image and sends them to the Qwen-Image-Edit model. You can also upload up to 3 reference images to guide the AI's artistic style or content.",
     faq_q10: "How do Cloud Storage Services work?",
     faq_a10: "We support S3-compatible storage (like AWS S3, Cloudflare R2, MinIO) and WebDAV. You can configure your own storage credentials in Settings > Storage. Once configured, you can upload your generated images/videos directly to your personal cloud. Your credentials are encrypted and stored locally in your browser; they are never uploaded to our servers.",
+    faq_q11: "What is Local Storage (OPFS)?",
+    faq_a11: "OPFS (Origin Private File System) is a high-performance storage area within your browser. It allows the app to save generated images and videos directly to your device's virtual drive. Data stored here is private, stays on your device, and is never uploaded to our servers. However, please note that clearing your browser's site data/cache will delete these files permanently.",
     footer_license: "Released under the MIT License. Open source and free forever.",
 
     // Aspect Ratios
@@ -363,6 +373,10 @@ export const translations = {
     msTokenHelp: "必需。支持多个令牌。获取",
     msTokenLink: "访问令牌",
     msTokenHelpEnd: "从控制台。",
+    a4fToken: "访问令牌",
+    a4fTokenHelp: "必需。支持多个令牌。获取",
+    a4fTokenLink: "API Key",
+    a4fTokenHelpEnd: "从控制台。",
     tokenTotal: "总数",
     tokenActive: "可用",
     tokenExhausted: "耗尽",
@@ -416,6 +430,7 @@ export const translations = {
     storage_off: "关闭",
     storage_s3: "S3 存储",
     storage_webdav: "WebDAV",
+    storage_opfs: "本地存储 (OPFS)",
 
     s3_access_key: "访问 ID",
     s3_secret_key: "访问密钥",
@@ -461,6 +476,7 @@ export const translations = {
     provider_huggingface: "Hugging Face",
     provider_gitee: "Gitee AI",
     provider_modelscope: "Model Scope",
+    provider_a4f: "A4F",
 
     // Custom Providers
     add_provider: "新增服务商",
@@ -495,6 +511,8 @@ export const translations = {
     error_gitee_token_exhausted: "所有配置的 Gitee AI 令牌已耗尽今日配额或无效。",
     error_ms_token_required: "需要配置 Model Scope 令牌。请在设置中进行配置。",
     error_ms_token_exhausted: "所有配置的 Model Scope 令牌已耗尽今日配额或无效。",
+    error_a4f_token_required: "需要配置 A4F 令牌。请在设置中进行配置。",
+    error_a4f_token_exhausted: "所有配置的 A4F 令牌已耗尽今日配额或无效。",
     error_api_connection: "API 连接失败。请检查您的网络或令牌。",
     error_invalid_response: "服务器返回了无效的响应。",
     error_prompt_optimization_failed: "优化提示词失败，请重试。",
@@ -536,6 +554,8 @@ export const translations = {
     faq_a9: "图片编辑器允许您利用 AI 修改现有图片。您可以在透明图层上绘画（使用画笔或矩形工具）来标注想要修改的区域，然后输入 AI 指令。系统会将您的涂鸦与原图合并，并发送给 Qwen-Image-Edit 模型进行处理。您还可以上传最多 3 张参考图，以引导 AI 的艺术风格或内容生成。",
     faq_q10: "云存储服务是如何工作的？",
     faq_a10: "我们支持 S3 兼容的存储服务（如 AWS S3, Cloudflare R2, MinIO）以及 WebDAV。您可以在“设置 > 存储服务”中配置您的存储凭证。配置完成后，您可以将生成的图片或视频直接上传到您的私有云端。您的凭证仅保存在本地浏览器中，绝不会上传到我们的服务器。",
+    faq_q11: "什么是 OPFS 存储？",
+    faq_a11: "OPFS (源私有文件系统) 是浏览器提供的高性能本地存储空间。它允许应用将生成的图片和视频直接保存到您设备的虚拟驱动器中。存储在这里的数据是私有的，完全保留在您的设备上，绝不会上传到我们的服务器。请注意：清除浏览器的站点数据或缓存将会永久删除这些文件。",
     footer_license: "基于 MIT 协议发布。永久开源免费。",
 
     // Aspect Ratios

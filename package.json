@@ -12,7 +12,9 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "lucide-react": "^0.555.0",
-    "react-zoom-pan-pinch": "^3.7.0"
+    "react-zoom-pan-pinch": "^3.7.0",
+    "opfs-tools": "^0.7.4",
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -15,6 +15,7 @@ export interface GeneratedImage {
     width?: number;
     height?: number;
     provider?: ProviderOption;
+    fileName?: string; // Local filename in OPFS tmp for the image
     // Video Generation Properties
     videoUrl?: string;
     videoTaskId?: string;
@@ -22,6 +23,7 @@ export interface GeneratedImage {
     videoError?: string;
     videoProvider?: ProviderOption;
     videoNextPollTime?: number; // Timestamp for next poll attempt
+    videoFileName?: string; // Local filename in OPFS tmp for the video
 }
 
 export interface CloudImage {
@@ -41,10 +43,7 @@ export interface CloudFile {
     type: 'image' | 'video' | 'unknown';
 }
 
-// Deprecated: Alias for backward compatibility if needed, but CloudFile is preferred
-export type S3Object = CloudFile;
-
-export type StorageType = 'off' | 's3' | 'webdav';
+export type StorageType = 'off' | 's3' | 'webdav' | 'opfs';
 
 export interface S3Config {
     accessKeyId: string;
@@ -73,9 +72,10 @@ export type ModelOption =
     | "flux-1-schnell" 
     | "flux-1-krea"
     | "flux-1"
+    | "imagen-4"
     | string; // Allow custom model strings
 
-export type ProviderOption = "huggingface" | "gitee" | "modelscope" | string;
+export type ProviderOption = "huggingface" | "gitee" | "modelscope" | "a4f" | string;
 
 export interface GenerationParams {
     model: ModelOption;
@@ -118,3 +118,16 @@ export interface CustomProvider {
 }
 
 export type ServiceMode = 'local' | 'server' | 'hydration';
+
+export interface VideoSettings {
+  prompt: string;
+  duration: number; // in seconds
+  steps: number;
+  guidance: number;
+}
+
+export interface UnifiedModelOption {
+    label: string;
+    value: string; // provider:modelId
+    provider: ProviderOption;
+}

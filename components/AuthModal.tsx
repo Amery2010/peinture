@@ -42,7 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={passwordValue}
                     onChange={(e) => onPasswordChange(e.target.value)}
                     placeholder={t.access_password_placeholder}
-                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white text-center focus:outline-none transition-colors ${error ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500'}`}
+                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white text-center focus:outline-0 transition-colors ${error ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-purple-500'}`}
                     onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
                 />
                 

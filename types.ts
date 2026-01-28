@@ -66,6 +66,7 @@ export type AspectRatioOption = "1:1" | "3:2" | "2:3" | "3:4" | "4:3" | "4:5" | 
 
 export type ModelOption = 
     | "z-image-turbo" 
+    | "z-image"
     | "qwen-image" 
     | "ovis-image" 
     | "flux-2"

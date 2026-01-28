@@ -428,7 +428,7 @@ export const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onOpenSettings
                 {image && (
                     <div className="absolute bottom-6 left-6 hidden md:flex items-center gap-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-white/70 shadow-lg z-20">
                         <Tooltip content={t.sc_zoom_out}><button onClick={zoomOut} className="p-2 hover:bg-white/10 hover:text-white transition-colors rounded-s-full"><Minus className="w-4 h-4" /></button></Tooltip>
-                        <Tooltip content={t.sc_reset_view}><button onClick={zoomReset} className="p-2 text-xs font-mono min-w-[3rem] text-center outline-none select-none hover:bg-white/10 hover:text-white transition-colors">{Math.round(scale * 100)}%</button></Tooltip>
+                        <Tooltip content={t.sc_reset_view}><button onClick={zoomReset} className="p-2 text-xs font-mono min-w-[3rem] text-center outline-0 select-none hover:bg-white/10 hover:text-white transition-colors">{Math.round(scale * 100)}%</button></Tooltip>
                         <Tooltip content={t.sc_zoom_in}><button onClick={zoomIn} className="p-2 hover:bg-white/10 hover:text-white transition-colors rounded-e-full"><Plus className="w-4 h-4" /></button></Tooltip>
                     </div>
                 )}
@@ -472,7 +472,7 @@ export const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onOpenSettings
                         <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-[#0D0B14]">
                             {history.length === 0 ? <div className="flex flex-col items-center justify-center h-full text-white/30 space-y-4"><Sparkles className="w-12 h-12 opacity-50" /><p>{t.no_history_images}</p></div> : 
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{history.map((img) => (
-                                    <button key={img.id} onClick={() => { setIsSourceNSFW(!!img.isBlurred); loadEditorImage(img.url); setShowHistoryModal(false); }} className="group relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-purple-500 transition-all hover:ring-4 hover:ring-purple-500/20 focus:outline-none">
+                                    <button key={img.id} onClick={() => { setIsSourceNSFW(!!img.isBlurred); loadEditorImage(img.url); setShowHistoryModal(false); }} className="group relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-purple-500 transition-all hover:ring-4 hover:ring-purple-500/20 focus:outline-0">
                                         <img src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3"><p className="text-xs text-white/90 line-clamp-2 text-left">{img.prompt}</p><div className="flex items-center gap-2 mt-1 text-[10px] text-white/50"><Clock className="w-3 h-3" /><span>{new Date(img.timestamp).toLocaleDateString()}</span></div></div>
                                     </button>
@@ -493,7 +493,7 @@ export const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onOpenSettings
                             {galleryLoading ? <div className="flex flex-col items-center justify-center h-full text-white/30 space-y-4"><Loader2 className="w-10 h-10 animate-spin" /></div> : galleryFiles.length === 0 ? <div className="flex flex-col items-center justify-center h-full text-white/30 space-y-4"><CloudUpload className="w-12 h-12 opacity-50" /><p>{t.no_gallery_images}</p></div> : 
                                 <>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">{galleryFiles.slice(0, galleryLimit).map((file) => (
-                                    <button key={file.key} onClick={() => { setIsSourceNSFW(file.key.includes('.NSFW')); loadEditorImage(galleryLocalUrls[file.key] || file.url); setShowGalleryModal(false); }} className="group relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-purple-500 transition-all hover:ring-4 hover:ring-purple-500/20 focus:outline-none bg-white/5">
+                                    <button key={file.key} onClick={() => { setIsSourceNSFW(file.key.includes('.NSFW')); loadEditorImage(galleryLocalUrls[file.key] || file.url); setShowGalleryModal(false); }} className="group relative aspect-square rounded-xl overflow-hidden border border-white/10 hover:border-purple-500 transition-all hover:ring-4 hover:ring-purple-500/20 focus:outline-0 bg-white/5">
                                         <img src={galleryLocalUrls[file.key] || file.url} alt={file.key} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                                     </button>
                                 ))}</div>

@@ -108,7 +108,7 @@ export const Select: React.FC<SelectProps> = ({ label, value, onChange, options,
             className={`
               relative w-full flex items-center justify-between rounded-lg 
               text-white/90 border border-white/10 bg-white/5 
-              focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500
+              focus:outline-0 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500
               transition-all px-4 text-sm font-medium
               ${isOpen ? 'ring-2 ring-purple-500/50 border-purple-500' : ''}
               ${dense ? 'h-10' : 'h-12'}

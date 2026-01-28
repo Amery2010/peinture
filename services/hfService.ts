@@ -6,6 +6,7 @@ import { API_MODEL_MAP } from "../constants";
 import { useAppStore } from "../store/appStore";
 
 const ZIMAGE_BASE_API_URL = "https://luca115-z-image-turbo.hf.space";
+const ZIMAGE_MODEL_BASE_API_URL = "https://multimodalart-z-image.hf.space";
 const QWEN_IMAGE_BASE_API_URL = "https://mcp-tools-qwen-image-fast.hf.space";
 const OVIS_IMAGE_BASE_API_URL = "https://aidc-ai-ovis-image-7b.hf.space";
 const FLUX_SCHNELL_BASE_API_URL = "https://black-forest-labs-flux-1-schnell.hf.space";
@@ -13,6 +14,8 @@ const UPSCALER_BASE_API_URL = "https://tuan2308-upscaler.hf.space";
 const POLLINATIONS_API_URL = "https://text.pollinations.ai/openai";
 const WAN2_VIDEO_API_URL = "https://fradeck619-wan2-2-fp8da-aoti-faster.hf.space";
 export const QWEN_IMAGE_EDIT_BASE_API_URL = "https://linoyts-qwen-image-edit-2509-fast.hf.space";
+
+const Z_IMAGE_NEGATIVE_PROMPT = "worst quality, low quality, JPEG compression artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, cluttered background, three legs";
 
 // --- Token Management System (Refactored to Store) ---
 
@@ -266,6 +269,74 @@ const getDimensions = (ratio: AspectRatioOption, enableHD: boolean): { width: nu
 
   return base;
 }
+
+const getZImageDimensionsString = (ratio: AspectRatioOption) => {
+  switch (ratio) {
+    case "16:9": return "1536x864 ( 16:9 )";
+    case "4:3": return "1472x1104 ( 4:3 )";
+    case "3:2": return "1536x1024 ( 3:2 )";
+    case "9:16": return "864x1536 ( 9:16 )";
+    case "3:4": return "1104x1472 ( 3:4 )";
+    case "2:3": return "1024x1536 ( 2:3 )";
+    case "1:1": default: return "1280x1280 ( 1:1 )";
+  }
+};
+
+const generateZImageModel = async (
+  prompt: string,
+  aspectRatio: AspectRatioOption,
+  seed: number = Math.round(Math.random() * 2147483647),
+  steps: number = 24,
+  guidanceScale: number = 3
+): Promise<GeneratedImage> => {
+  const dimensionString = getZImageDimensionsString(aspectRatio);
+
+  return runWithTokenRetry(async (token) => {
+    try {
+      const output: any = await runGradioTask(
+          ZIMAGE_MODEL_BASE_API_URL,
+          [
+            prompt,
+            Z_IMAGE_NEGATIVE_PROMPT,
+            dimensionString,
+            seed,
+            steps,
+            guidanceScale,
+            true,
+            false,
+            []
+          ],
+          3, // fn_index
+          21, // trigger_id
+          token
+      );
+
+      const data = output.data;
+      if (!data || !data[0]) throw new Error("error_invalid_response");
+      
+      let url = data[0].url;
+      if (!url && typeof data[0] === 'string') url = data[0]; 
+      if (!url && data[0].image?.url) url = data[0].image.url;
+
+      if (!url) throw new Error("error_invalid_response");
+
+      return {
+        id: generateUUID(),
+        url: url,
+        model: 'z-image',
+        prompt,
+        aspectRatio,
+        timestamp: Date.now(),
+        seed,
+        steps,
+        guidanceScale
+      };
+    } catch (error) {
+      console.error("Z-Image Generation Error:", error);
+      throw error;
+    }
+  });
+};
 
 const generateZImage = async (
   prompt: string,
@@ -525,7 +596,9 @@ export const generateImage = async (
   } else if (model === 'qwen-image') {
     return generateQwenImage(prompt, aspectRatio, seed, steps);
   } else if (model === 'ovis-image') {
-    return generateOvisImage(prompt, aspectRatio, finalSeed, enableHD, steps)
+    return generateOvisImage(prompt, aspectRatio, finalSeed, enableHD, steps);
+  } else if (model === 'z-image') {
+    return generateZImageModel(prompt, aspectRatio, finalSeed, steps, guidanceScale);
   } else {
     // Default to z-image-turbo
     return generateZImage(prompt, aspectRatio, finalSeed, enableHD, steps);

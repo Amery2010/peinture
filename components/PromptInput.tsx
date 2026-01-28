@@ -120,7 +120,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                             <Languages className="w-3.5 h-3.5 text-white/60" />
                             <button
                                 onClick={() => setAutoTranslate(!autoTranslate)}
-                                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-purple-500/50 ${autoTranslate ? 'bg-purple-600' : 'bg-white/10'}`}
+                                className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-0 focus:ring-1 focus:ring-purple-500/50 ${autoTranslate ? 'bg-purple-600' : 'bg-white/10'}`}
                             >
                                 <span
                                     className={`${autoTranslate ? 'translate-x-3.5' : 'translate-x-0.5'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`}

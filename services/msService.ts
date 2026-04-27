@@ -16,9 +16,9 @@ const MS_CHAT_API_URL =
   "https://api-inference.modelscope.cn/v1/chat/completions";
 
 // Constants for image upload via HF Space
-const QWEN_EDIT_HF_BASE = "https://linoyts-qwen-image-edit-2509-fast.hf.space";
+const QWEN_EDIT_HF_BASE = "https://linoyts-qwen-image-edit-2511-fast.hf.space";
 const QWEN_EDIT_HF_FILE_PREFIX =
-  "https://linoyts-qwen-image-edit-2509-fast.hf.space/gradio_api/file=";
+  "https://prithivmlmods-qwen-image-edit-2511-loras-fast/gradio_api/file=";
 
 // Token retry delegates to shared service
 const runWithMsTokenRetry = <T>(

@@ -85,6 +85,8 @@ export const PROVIDER_OPTIONS = [
   { value: "gitee", label: "Gitee AI" },
   { value: "modelscope", label: "Model Scope" },
   { value: "a4f", label: "A4F" },
+  { value: "openai", label: "OpenAI" },
+  { value: "google", label: "Google" },
 ];
 
 export const FLUX_MODELS = [
@@ -168,6 +170,16 @@ export const EDIT_MODELS: UnifiedModelOption[] = [
     label: "Qwen Image Edit",
     value: "modelscope:qwen-image-edit",
     provider: "modelscope",
+  },
+  {
+    label: "OpenAI",
+    value: "openai:default",
+    provider: "openai",
+  },
+  {
+    label: "Google",
+    value: "google:default",
+    provider: "google",
   },
 ];
 

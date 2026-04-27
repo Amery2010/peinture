@@ -48,7 +48,13 @@ import { useStorageForm } from "./useStorageForm";
 
 export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
   const { provider, setProvider, model, setModel } = useSettingsStore();
-  const { setProviderTokens } = useConfigStore();
+  const {
+    setProviderTokens,
+    openaiConfig: initialOpenaiConfig,
+    googleConfig: initialGoogleConfig,
+    setOpenAIConfig,
+    setGoogleConfig,
+  } = useConfigStore();
 
   // Composed sub-hooks
   const tokensForm = useTokensForm();
@@ -59,6 +65,11 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
     "general" | "provider" | "models" | "prompt" | "live" | "s3" | "webdav"
   >("general");
   const [serviceMode, setServiceMode] = useState<ServiceMode>("local");
+
+  const [openaiConfigState, setOpenAIConfigState] =
+    useState(initialOpenaiConfig);
+  const [googleConfigState, setGoogleConfigState] =
+    useState(initialGoogleConfig);
 
   // Custom Providers
   const [customProviders, setCustomProviders] = useState<CustomProvider[]>([]);
@@ -139,6 +150,10 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
     if (isOpen) {
       setServiceMode(getServiceMode());
 
+      // Pull latest config from store
+      setOpenAIConfigState(useConfigStore.getState().openaiConfig);
+      setGoogleConfigState(useConfigStore.getState().googleConfig);
+
       // Initialize composed sub-hooks
       tokensForm.initializeTokens();
       storageForm.initializeStorage();
@@ -203,17 +218,40 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
         baseList
           .filter((m) => m.provider === "huggingface")
           .forEach((m) => valid.add(m.value));
-        if (tokensForm.giteeToken)
+        if (
+          tokensForm.giteeToken ||
+          useConfigStore.getState().tokens.gitee?.length > 0
+        )
           baseList
             .filter((m) => m.provider === "gitee")
             .forEach((m) => valid.add(m.value));
-        if (tokensForm.msToken)
+        if (
+          tokensForm.msToken ||
+          useConfigStore.getState().tokens.modelscope?.length > 0
+        )
           baseList
             .filter((m) => m.provider === "modelscope")
             .forEach((m) => valid.add(m.value));
-        if (tokensForm.a4fToken)
+        if (
+          tokensForm.a4fToken ||
+          useConfigStore.getState().tokens.a4f?.length > 0
+        )
           baseList
             .filter((m) => m.provider === "a4f")
+            .forEach((m) => valid.add(m.value));
+        if (
+          tokensForm.openaiToken ||
+          useConfigStore.getState().tokens.openai?.length > 0
+        )
+          baseList
+            .filter((m) => m.provider === "openai")
+            .forEach((m) => valid.add(m.value));
+        if (
+          tokensForm.googleToken ||
+          useConfigStore.getState().tokens.google?.length > 0
+        )
+          baseList
+            .filter((m) => m.provider === "google")
             .forEach((m) => valid.add(m.value));
       }
 
@@ -299,7 +337,9 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
     textModelValue,
     tokensForm.a4fToken,
     tokensForm.giteeToken,
+    tokensForm.googleToken,
     tokensForm.msToken,
+    tokensForm.openaiToken,
     upscalerModelValue,
   ]);
 
@@ -401,6 +441,11 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
     setProviderTokens("gitee", tokensForm.giteeToken);
     setProviderTokens("modelscope", tokensForm.msToken);
     setProviderTokens("a4f", tokensForm.a4fToken);
+    setProviderTokens("openai", tokensForm.openaiToken);
+    setProviderTokens("google", tokensForm.googleToken);
+
+    setOpenAIConfig(openaiConfigState);
+    setGoogleConfig(googleConfigState);
 
     saveSystemPromptContent(systemPrompt);
     saveTranslationPromptContent(translationPrompt);
@@ -441,6 +486,12 @@ export const useSettingsForm = (isOpen: boolean, onClose: () => void) => {
     refreshingProviders,
     refreshSuccessProviders,
     refreshErrorProviders,
+
+    openaiConfig: openaiConfigState,
+    setOpenaiConfig: setOpenAIConfigState,
+    googleConfig: googleConfigState,
+    setGoogleConfig: setGoogleConfigState,
+
     newProviderName,
     setNewProviderName,
     newProviderUrl,

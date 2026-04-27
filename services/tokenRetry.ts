@@ -14,11 +14,11 @@ import { useConfigStore } from "../store/configStore";
 // --- Token Access Helpers ---
 
 const getNextAvailableToken = (providerId: ProviderId): string | null => {
-  const store = useConfigStore.getState();
-  store.resetDailyStatus(providerId);
+  useConfigStore.getState().resetDailyStatus(providerId);
 
-  const tokens = store.tokens[providerId] || [];
-  const status = store.tokenStatus[providerId];
+  const currentState = useConfigStore.getState();
+  const tokens = currentState.tokens[providerId] || [];
+  const status = currentState.tokenStatus[providerId];
 
   return tokens.find((t) => !status.exhausted[t]) || null;
 };
@@ -34,6 +34,8 @@ const QUOTA_ERROR_PATTERNS: Record<ProviderId, string[]> = {
   gitee: ["429", "quota", "credit"],
   modelscope: ["429", "quota", "credit", "Arrearage", "Bill"],
   a4f: ["429", "insufficient_quota", "quota"],
+  openai: ["429", "insufficient_quota", "quota"],
+  google: ["429", "quota", "Resource exhausted"],
 };
 
 const ERROR_KEYS: Record<ProviderId, { required: string; exhausted: string }> =
@@ -53,6 +55,14 @@ const ERROR_KEYS: Record<ProviderId, { required: string; exhausted: string }> =
     a4f: {
       required: "error_a4f_token_required",
       exhausted: "error_a4f_token_exhausted",
+    },
+    openai: {
+      required: "error_openai_token_required",
+      exhausted: "error_openai_token_exhausted",
+    },
+    google: {
+      required: "error_google_token_required",
+      exhausted: "error_google_token_exhausted",
     },
   };
 

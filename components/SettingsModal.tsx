@@ -108,7 +108,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         />
 
         {/* Added min-h-0 to allow proper scrolling in flex child */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden relative min-h-0">
+        <div className="flex-1 overflow-x-hidden relative min-h-0 max-h-[420px]">
           <div
             className="flex h-full transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1)"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
@@ -141,6 +141,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       msStats={form.msStats}
                       a4fToken={form.a4fToken}
                       a4fStats={form.a4fStats}
+                      openaiToken={form.openaiToken}
+                      openaiStats={form.openaiStats}
+                      googleToken={form.googleToken}
+                      googleStats={form.googleStats}
+                      openaiConfig={form.openaiConfig}
+                      setOpenaiConfig={form.setOpenaiConfig}
+                      googleConfig={form.googleConfig}
+                      setGoogleConfig={form.setGoogleConfig}
                       updateToken={form.updateToken}
                       customProviders={form.customProviders}
                       handleUpdateCustomProvider={
@@ -173,6 +181,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       giteeToken={form.giteeToken}
                       msToken={form.msToken}
                       a4fToken={form.a4fToken}
+                      openaiToken={form.openaiToken}
+                      googleToken={form.googleToken}
+                      openaiConfig={form.openaiConfig}
+                      googleConfig={form.googleConfig}
                       customProviders={form.customProviders}
                       editModelValue={form.editModelValue}
                       setEditModelValue={form.setEditModelValue}

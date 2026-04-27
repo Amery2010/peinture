@@ -10,12 +10,17 @@ import {
   TEXT_MODELS,
   UPSCALER_MODELS,
 } from "../../constants";
+import { useConfigStore } from "../../store/configStore";
 
 interface ModelsTabProps {
   serviceMode: ServiceMode;
   giteeToken: string;
   msToken: string;
   a4fToken: string;
+  openaiToken: string;
+  googleToken: string;
+  openaiConfig: { apiUrl: string; modelId: string };
+  googleConfig: { apiUrl: string; modelId: string };
   customProviders: CustomProvider[];
   editModelValue: string;
   setEditModelValue: (v: string) => void;
@@ -38,6 +43,14 @@ export const ModelsTab: React.FC<ModelsTabProps> = (props) => {
       .replace(/\s*\(MS\)$/, "");
   };
 
+  const toPascalCaseWithSpace = (str: string) => {
+    if (!str) return "";
+    return str
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const getAvailableModelGroups = (
     baseList: UnifiedModelOption[],
     type: "generate" | "edit" | "video" | "text" | "upscaler",
@@ -54,7 +67,7 @@ export const ModelsTab: React.FC<ModelsTabProps> = (props) => {
       if (hfOptions.length > 0)
         groups.push({ label: t.provider_huggingface, options: hfOptions });
 
-      if (props.giteeToken || localStorage.getItem("giteeToken")) {
+      if (props.giteeToken || useConfigStore.getState().tokens.gitee?.length > 0) {
         const giteeOptions = baseList
           .filter((m) => m.provider === "gitee")
           .map((m) => ({ value: m.value, label: cleanLabel(m.label) }));
@@ -62,7 +75,7 @@ export const ModelsTab: React.FC<ModelsTabProps> = (props) => {
           groups.push({ label: t.provider_gitee, options: giteeOptions });
       }
 
-      if (props.msToken || localStorage.getItem("msToken")) {
+      if (props.msToken || useConfigStore.getState().tokens.modelscope?.length > 0) {
         const msOptions = baseList
           .filter((m) => m.provider === "modelscope")
           .map((m) => ({ value: m.value, label: cleanLabel(m.label) }));
@@ -70,12 +83,28 @@ export const ModelsTab: React.FC<ModelsTabProps> = (props) => {
           groups.push({ label: t.provider_modelscope, options: msOptions });
       }
 
-      if (props.a4fToken || localStorage.getItem("a4fToken")) {
+      if (props.a4fToken || useConfigStore.getState().tokens.a4f?.length > 0) {
         const a4fOptions = baseList
           .filter((m) => m.provider === "a4f")
           .map((m) => ({ value: m.value, label: cleanLabel(m.label) }));
         if (a4fOptions.length > 0)
-          groups.push({ label: t.provider_a4f, options: a4fOptions });
+          groups.push({ label: t.provider_a4f || "A4F", options: a4fOptions });
+      }
+
+      if (props.openaiToken || useConfigStore.getState().tokens.openai?.length > 0) {
+        const openaiOptions = baseList
+          .filter((m) => m.provider === "openai")
+          .map((m) => ({ value: m.value, label: props.openaiConfig.modelId ? toPascalCaseWithSpace(props.openaiConfig.modelId) : cleanLabel(m.label) }));
+        if (openaiOptions.length > 0)
+          groups.push({ label: "OpenAI", options: openaiOptions });
+      }
+
+      if (props.googleToken || useConfigStore.getState().tokens.google?.length > 0) {
+        const googleOptions = baseList
+          .filter((m) => m.provider === "google")
+          .map((m) => ({ value: m.value, label: props.googleConfig.modelId ? toPascalCaseWithSpace(props.googleConfig.modelId) : cleanLabel(m.label) }));
+        if (googleOptions.length > 0)
+          groups.push({ label: "Google", options: googleOptions });
       }
     }
 

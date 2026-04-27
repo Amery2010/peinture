@@ -30,6 +30,18 @@ export const useTokensForm = () => {
     active: 0,
     exhausted: 0,
   });
+  const [openaiToken, setOpenaiToken] = useState("");
+  const [openaiStats, setOpenaiStats] = useState({
+    total: 0,
+    active: 0,
+    exhausted: 0,
+  });
+  const [googleToken, setGoogleToken] = useState("");
+  const [googleStats, setGoogleStats] = useState({
+    total: 0,
+    active: 0,
+    exhausted: 0,
+  });
 
   const calculateStats = useCallback(
     (tokensList: string[], providerId: ProviderId) => {
@@ -61,6 +73,14 @@ export const useTokensForm = () => {
     const aTokens = tokens.a4f || [];
     setA4FToken(aTokens.join(","));
     setA4FStats(calculateStats(aTokens, "a4f"));
+
+    const oTokens = tokens.openai || [];
+    setOpenaiToken(oTokens.join(","));
+    setOpenaiStats(calculateStats(oTokens, "openai"));
+
+    const googleTokens = tokens.google || [];
+    setGoogleToken(googleTokens.join(","));
+    setGoogleStats(calculateStats(googleTokens, "google"));
   }, [tokens, calculateStats]);
 
   const updateToken = (type: ProviderId, value: string) => {
@@ -82,6 +102,12 @@ export const useTokensForm = () => {
     } else if (type === "a4f") {
       setA4FToken(value);
       setA4FStats(newStats);
+    } else if (type === "openai") {
+      setOpenaiToken(value);
+      setOpenaiStats(newStats);
+    } else if (type === "google") {
+      setGoogleToken(value);
+      setGoogleStats(newStats);
     }
   };
 
@@ -94,6 +120,10 @@ export const useTokensForm = () => {
     msStats,
     a4fToken,
     a4fStats,
+    openaiToken,
+    openaiStats,
+    googleToken,
+    googleStats,
     updateToken,
     initializeTokens,
   };

@@ -51,6 +51,9 @@ export interface ConfigState {
   textModelConfig: { provider: string; model: string };
   upscalerModelConfig: { provider: string; model: string };
 
+  openaiConfig: { apiUrl: string; modelId: string };
+  googleConfig: { apiUrl: string; modelId: string };
+
   videoSettings: Record<string, VideoSettings>;
   customProviders: CustomProvider[];
 
@@ -67,6 +70,9 @@ export interface ConfigState {
 
   setSystemPrompt: (val: string) => void;
   setTranslationPrompt: (val: string) => void;
+
+  setOpenAIConfig: (val: { apiUrl: string; modelId: string }) => void;
+  setGoogleConfig: (val: { apiUrl: string; modelId: string }) => void;
 
   setEditModelConfig: (val: { provider: string; model: string }) => void;
   setLiveModelConfig: (val: { provider: string; model: string }) => void;
@@ -105,6 +111,15 @@ export const useConfigStore = create<ConfigState>()(
         model: "RealESRGAN_x4plus",
       },
 
+      openaiConfig: {
+        apiUrl: "https://api.openai.com/v1/responses",
+        modelId: "gpt-5.4",
+      },
+      googleConfig: {
+        apiUrl: "https://generativelanguage.googleapis.com/v1beta/models",
+        modelId: "gemini-3.1-flash-image-preview",
+      },
+
       videoSettings: {},
       customProviders: [],
 
@@ -115,12 +130,16 @@ export const useConfigStore = create<ConfigState>()(
         gitee: [],
         modelscope: [],
         a4f: [],
+        openai: [],
+        google: [],
       },
       tokenStatus: {
         huggingface: { date: getUTCDatesString(), exhausted: {} },
         gitee: { date: getBeijingDateString(), exhausted: {} },
         modelscope: { date: getBeijingDateString(), exhausted: {} },
         a4f: { date: getUTCDatesString(), exhausted: {} },
+        openai: { date: getUTCDatesString(), exhausted: {} },
+        google: { date: getUTCDatesString(), exhausted: {} },
       },
 
       setServiceMode: (serviceMode) => set({ serviceMode }),
@@ -136,6 +155,9 @@ export const useConfigStore = create<ConfigState>()(
       setTextModelConfig: (textModelConfig) => set({ textModelConfig }),
       setUpscalerModelConfig: (upscalerModelConfig) =>
         set({ upscalerModelConfig }),
+
+      setOpenAIConfig: (openaiConfig) => set({ openaiConfig }),
+      setGoogleConfig: (googleConfig) => set({ googleConfig }),
 
       setVideoSettings: (provider, settings) =>
         set((state) => ({

@@ -32,6 +32,14 @@ interface ProviderTabProps {
   msStats: any;
   a4fToken: string;
   a4fStats: any;
+  openaiToken: string;
+  openaiStats: any;
+  googleToken: string;
+  googleStats: any;
+  openaiConfig: { apiUrl: string; modelId: string };
+  setOpenaiConfig: (val: { apiUrl: string; modelId: string }) => void;
+  googleConfig: { apiUrl: string; modelId: string };
+  setGoogleConfig: (val: { apiUrl: string; modelId: string }) => void;
   // Update Handler
   updateToken: (type: ProviderId, val: string) => void;
   // Custom Provider Props
@@ -202,6 +210,24 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
     </div>
   );
 
+  const renderConfigInput = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    placeholder: string = "",
+  ) => (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-white/60">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 bg-[#1A1625] border border-white/10 rounded-lg text-sm text-white focus:outline-0 focus:border-purple-500/50 font-mono"
+      />
+    </div>
+  );
+
   const showBaseProviders =
     props.serviceMode === "local" || props.serviceMode === "hydration";
   const showCustomProviders =
@@ -275,6 +301,86 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
               t.a4fTokenHelpEnd,
               "https://www.a4f.co/api-keys",
             ),
+          )}
+          {renderProviderPanel(
+            "openai",
+            "OpenAI",
+            "bg-blue-400",
+            <div className="space-y-4">
+              {renderConfigInput(
+                t.api_url || "API URL",
+                props.openaiConfig.apiUrl,
+                (val) =>
+                  props.setOpenaiConfig({ ...props.openaiConfig, apiUrl: val }),
+                "https://api.openai.com/v1/responses",
+              )}
+              {renderConfigInput(
+                t.model || "Model ID",
+                props.openaiConfig.modelId,
+                (val) =>
+                  props.setOpenaiConfig({
+                    ...props.openaiConfig,
+                    modelId: val,
+                  }),
+                "gpt-5.4",
+              )}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-white/60">
+                  {t.api_token || "API Token"}
+                </label>
+                {renderTokenInput(
+                  "openai",
+                  props.openaiToken,
+                  (v) => props.updateToken("openai", v),
+                  props.openaiStats,
+                  "sk-...,sk-...",
+                  "",
+                  "",
+                  "",
+                  "https://platform.openai.com/api-keys",
+                )}
+              </div>
+            </div>,
+          )}
+          {renderProviderPanel(
+            "google",
+            "Google Gemini",
+            "bg-blue-600",
+            <div className="space-y-4">
+              {renderConfigInput(
+                t.api_url || "API URL",
+                props.googleConfig.apiUrl,
+                (val) =>
+                  props.setGoogleConfig({ ...props.googleConfig, apiUrl: val }),
+                "https://generativelanguage.googleapis.com/v1beta/models",
+              )}
+              {renderConfigInput(
+                t.model || "Model ID",
+                props.googleConfig.modelId,
+                (val) =>
+                  props.setGoogleConfig({
+                    ...props.googleConfig,
+                    modelId: val,
+                  }),
+                "gemini-3.1-flash-image-preview",
+              )}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-white/60">
+                  {t.api_token || "API Token"}
+                </label>
+                {renderTokenInput(
+                  "google",
+                  props.googleToken,
+                  (v) => props.updateToken("google", v),
+                  props.googleStats,
+                  "AIza...,AIza...",
+                  "",
+                  "",
+                  "",
+                  "https://aistudio.google.com/app/apikey",
+                )}
+              </div>
+            </div>,
           )}
         </>
       )}

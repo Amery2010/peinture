@@ -17,6 +17,8 @@ import {
   optimizePrompt as optimizePromptHF,
 } from "../services/hfService";
 import { generateA4FImage, optimizePromptA4F } from "../services/a4fService";
+import { generateOpenAIImage } from "../services/openaiService";
+import { generateGoogleImage } from "../services/googleService";
 import {
   generateCustomImage,
   generateCustomVideo,
@@ -170,6 +172,26 @@ export const useCreationGeneration = () => {
         );
       } else if (provider === "a4f") {
         result = await generateA4FImage(
+          model,
+          finalPrompt,
+          aspectRatio,
+          seedNumber,
+          steps,
+          requestHD,
+          currentGuidanceScale,
+        );
+      } else if (provider === "openai") {
+        result = await generateOpenAIImage(
+          model,
+          finalPrompt,
+          aspectRatio,
+          seedNumber,
+          steps,
+          requestHD,
+          currentGuidanceScale,
+        );
+      } else if (provider === "google") {
+        result = await generateGoogleImage(
           model,
           finalPrompt,
           aspectRatio,

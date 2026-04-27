@@ -22,7 +22,7 @@ export const ImageSkeleton: React.FC<SkeletonProps> = ({
 }) => {
   return (
     <Skeleton
-      className={`w-full aspect-square rounded-2xl ${className}`}
+      className={`rounded-2xl ${className}`}
       {...props}
     />
   );

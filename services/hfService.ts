@@ -23,7 +23,7 @@ const POLLINATIONS_API_URL = "https://text.pollinations.ai/openai";
 const WAN2_VIDEO_API_URL =
   "https://fradeck619-wan2-2-fp8da-aoti-faster.hf.space";
 export const QWEN_IMAGE_EDIT_BASE_API_URL =
-  "https://linoyts-qwen-image-edit-2509-fast.hf.space";
+  "https://linoyts-qwen-image-edit-2511-fast.hf.space";
 
 const Z_IMAGE_NEGATIVE_PROMPT =
   "worst quality, low quality, JPEG compression artifacts, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, cluttered background, three legs";

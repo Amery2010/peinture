@@ -125,6 +125,8 @@ export const useImageActions = () => {
         const fileName = `${targetImageId}-upscaled.${ext}`;
         const opfsUrl = await saveTempFileToOPFS(blob, fileName);
 
+        if (currentImage.url?.startsWith("blob:")) URL.revokeObjectURL(currentImage.url);
+
         const updatedImage = {
           ...currentImage,
           url: opfsUrl,

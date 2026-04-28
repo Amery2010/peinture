@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useCallback } from "react";
 import { AppView } from "../components/Header";
 import { GeneratedImage } from "../types";
 import { useDataStore } from "./dataStore";
@@ -15,6 +16,7 @@ export interface UIState {
   currentImageId: string | null;
   imageDimensions: { width: number; height: number } | null;
   isLiveMode: boolean;
+  isOpfsHydrated: boolean;
 
   setCurrentView: (view: AppView) => void;
   setPrompt: (prompt: string) => void;
@@ -29,6 +31,7 @@ export interface UIState {
     dimensions: { width: number; height: number } | null,
   ) => void;
   setIsLiveMode: (isLive: boolean) => void;
+  setIsOpfsHydrated: (isHydrated: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()((set) => ({
@@ -43,6 +46,7 @@ export const useUIStore = create<UIState>()((set) => ({
   currentImageId: null,
   imageDimensions: null,
   isLiveMode: false,
+  isOpfsHydrated: false,
 
   setCurrentView: (currentView) => set({ currentView }),
   setPrompt: (prompt) => set({ prompt }),
@@ -55,6 +59,7 @@ export const useUIStore = create<UIState>()((set) => ({
   setCurrentImageId: (currentImageId) => set({ currentImageId }),
   setImageDimensions: (imageDimensions) => set({ imageDimensions }),
   setIsLiveMode: (isLiveMode) => set({ isLiveMode }),
+  setIsOpfsHydrated: (isOpfsHydrated) => set({ isOpfsHydrated }),
 }));
 
 /**
@@ -76,7 +81,7 @@ export const useSetCurrentImage = () => {
   const setId = useUIStore((s) => s.setCurrentImageId);
   const setHistory = useDataStore((s) => s.setHistory);
 
-  return (
+  return useCallback((
     imageOrFn:
       | GeneratedImage
       | null
@@ -105,5 +110,5 @@ export const useSetCurrentImage = () => {
     } else {
       setId(null);
     }
-  };
+  }, [setId, setHistory]);
 };

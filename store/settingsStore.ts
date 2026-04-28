@@ -13,6 +13,7 @@ export interface SettingsState {
   steps: number;
   guidanceScale: number;
   autoTranslate: boolean;
+  enableHD: boolean;
 
   setLanguage: (lang: Language) => void;
   setProvider: (provider: ProviderOption) => void;
@@ -22,7 +23,8 @@ export interface SettingsState {
   setSteps: (steps: number) => void;
   setGuidanceScale: (scale: number) => void;
   setAutoTranslate: (enabled: boolean) => void;
-  resetSettings: () => void;
+  setEnableHD: (enabled: boolean) => void;
+  resetImagineParams: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -39,6 +41,7 @@ export const useSettingsStore = create<SettingsState>()(
       steps: 9,
       guidanceScale: 3.5,
       autoTranslate: false,
+      enableHD: false,
 
       setLanguage: (language) => set({ language }),
       setProvider: (provider) => set({ provider }),
@@ -48,11 +51,13 @@ export const useSettingsStore = create<SettingsState>()(
       setSteps: (steps) => set({ steps }),
       setGuidanceScale: (guidanceScale) => set({ guidanceScale }),
       setAutoTranslate: (autoTranslate) => set({ autoTranslate }),
+      setEnableHD: (enableHD) => set({ enableHD }),
 
-      resetSettings: () =>
+      resetImagineParams: () =>
         set({
           seed: "",
           aspectRatio: "1:1",
+          enableHD: false,
           // Keep language, provider, model, steps, guidanceScale, autoTranslate
         }),
     }),

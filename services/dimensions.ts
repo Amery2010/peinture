@@ -18,6 +18,10 @@ export const getBaseDimensions = (
       return { width: 576, height: 1024 };
     case "3:4":
       return { width: 768, height: 1024 };
+    case "4:5":
+      return { width: 832, height: 1040 };
+    case "5:4":
+      return { width: 1040, height: 832 };
     case "2:3":
       return { width: 640, height: 960 };
     case "1:1":

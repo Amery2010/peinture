@@ -39,6 +39,7 @@ import {
   convertBlobToPng,
   addToPromptHistory,
 } from "../services/utils";
+import { getDefaultModelParams } from "../services/modelUtils";
 import { saveTempFileToOPFS } from "../services/storageService";
 import { resolveErrorMessage } from "../services/errorUtils";
 import {
@@ -46,7 +47,6 @@ import {
   GITEE_MODEL_OPTIONS,
   MS_MODEL_OPTIONS,
   A4F_MODEL_OPTIONS,
-  getModelConfig,
   getGuidanceScaleConfig,
   LIVE_MODELS,
 } from "../constants";
@@ -68,7 +68,7 @@ export const useCreationGeneration = () => {
     guidanceScale,
     setGuidanceScale,
     autoTranslate,
-    resetSettings,
+    resetImagineParams,
   } = useSettingsStore();
 
   const {
@@ -116,7 +116,7 @@ export const useCreationGeneration = () => {
       const seedNumber = seed.trim() === "" ? undefined : parseInt(seed, 10);
       const gsConfig = getGuidanceScaleConfig(model, provider);
       const currentGuidanceScale = gsConfig ? guidanceScale : undefined;
-      const requestHD = true;
+      const requestHD = useSettingsStore.getState().enableHD;
 
       let result;
       if (provider === "gitee") {
@@ -379,6 +379,7 @@ export const useCreationGeneration = () => {
         ...currentImage,
         videoStatus: "generating",
         videoProvider: currentVideoProvider,
+        videoTimestamp: Date.now(),
       } as GeneratedImage;
       setCurrentImage(loadingImage);
       setHistory((prev) =>
@@ -502,7 +503,7 @@ export const useCreationGeneration = () => {
 
   // --- Reset ---
   const handleReset = () => {
-    resetSettings();
+    resetImagineParams();
     let newModel = model;
 
     if (provider === "gitee")
@@ -526,41 +527,7 @@ export const useCreationGeneration = () => {
 
     setModel(newModel);
 
-    let defaultSteps = 9;
-    let defaultGs = 7.5;
-    let hasGs = false;
-
-    const customProviders = getCustomProviders();
-    const activeCustom = customProviders.find((p) => p.id === provider);
-
-    if (activeCustom) {
-      const customModel = activeCustom.models.generate?.find(
-        (m) => m.id === newModel,
-      );
-      if (customModel) {
-        if (customModel.steps) defaultSteps = customModel.steps.default;
-        if (customModel.guidance) {
-          hasGs = true;
-          defaultGs = customModel.guidance.default;
-        }
-      } else {
-        const fallback = getModelConfig(provider, newModel);
-        defaultSteps = fallback.default;
-        const fallbackGs = getGuidanceScaleConfig(newModel, provider);
-        if (fallbackGs) {
-          hasGs = true;
-          defaultGs = fallbackGs.default;
-        }
-      }
-    } else {
-      const config = getModelConfig(provider, newModel);
-      defaultSteps = config.default;
-      const gsConfig = getGuidanceScaleConfig(newModel, provider);
-      if (gsConfig) {
-        hasGs = true;
-        defaultGs = gsConfig.default;
-      }
-    }
+    const { defaultSteps, defaultGs, hasGs } = getDefaultModelParams(provider, newModel);
 
     setSteps(defaultSteps);
     if (hasGs) {

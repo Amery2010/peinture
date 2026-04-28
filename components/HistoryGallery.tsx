@@ -11,7 +11,7 @@ interface HistoryGalleryProps {
 
 export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ onSelect }) => {
   const { history } = useDataStore();
-  const { currentImageId: selectedId, isLoading } = useUIStore();
+  const { currentImageId: selectedId, isLoading, isOpfsHydrated } = useUIStore();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -91,13 +91,17 @@ export const HistoryGallery: React.FC<HistoryGalleryProps> = ({ onSelect }) => {
                     ${selectedId === img.id ? "ring-2 ring-purple-400 ring-offset-2 ring-offset-[#0D0B14]" : "ring-2 ring-transparent hover:ring-white/50"}
                 `}
               >
-                <img
-                  src={img.url}
-                  alt={img.prompt}
-                  className={`h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500 ${img.isBlurred ? "blur-sm" : ""}`}
-                  loading="lazy"
-                  onContextMenu={(e) => e.preventDefault()}
-                />
+                {isOpfsHydrated ? (
+                  <img
+                    src={img.url}
+                    alt={img.prompt}
+                    className={`h-full w-full object-cover transform group-hover:scale-110 transition-transform duration-500 ${img.isBlurred ? "blur-sm" : ""}`}
+                    loading="lazy"
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
+                ) : (
+                  <ImageSkeleton className="h-full w-full" />
+                )}
 
                 {/* Live Video Indicator */}
                 {img.videoUrl && (

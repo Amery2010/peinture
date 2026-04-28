@@ -1,22 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Mock the appStore to prevent initialization errors in test environment
-vi.mock("../store/appStore", () => ({
-  useAppStore: {
-    getState: () => ({
-      serviceMode: "local",
-      storageType: "opfs",
-      systemPrompt: "",
-      translationPrompt: "",
-      editModelConfig: { provider: "huggingface", model: "test" },
-      liveModelConfig: { provider: "huggingface", model: "test" },
-      textModelConfig: { provider: "huggingface", model: "test" },
-      upscalerModelConfig: { provider: "huggingface", model: "test" },
-      videoSettings: {},
-      customProviders: [],
-    }),
-  },
-}));
 
 // Mock configStore to prevent circular import initialization errors
 vi.mock("../store/configStore", () => ({

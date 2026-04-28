@@ -132,7 +132,7 @@ export async function runWithTokenRetry<T>(
 
       if (isQuotaError(error, providerId) && token) {
         console.warn(
-          `[${providerId}] Token ${token.substring(0, 8)}... exhausted. Switching to next token.`,
+          `[${providerId}] Token ${token.substring(0, 4)}**** exhausted. Switching to next token.`,
         );
         markTokenExhausted(providerId, token);
         continue;

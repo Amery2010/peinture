@@ -22,6 +22,7 @@ export interface GeneratedImage {
     videoStatus?: 'generating' | 'success' | 'failed';
     videoError?: string;
     videoProvider?: ProviderOption;
+    videoTimestamp?: number; // Timestamp when video generation started
     videoNextPollTime?: number; // Timestamp for next poll attempt
     videoFileName?: string; // Local filename in OPFS tmp for the video
 }

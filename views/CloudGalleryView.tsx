@@ -517,6 +517,7 @@ export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({
                               e.stopPropagation();
                               handleToggleNSFW(file);
                             }}
+                            aria-label={isNSFW ? t.unmark_nsfw : t.mark_nsfw}
                             className={`p-2 hover:bg-white/10 active:scale-90 rounded-full transition-all ${isNSFW ? "text-purple-400" : "text-white/80"}`}
                           >
                             {togglingNsfwId === file.key ? (
@@ -542,6 +543,7 @@ export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({
                               e.stopPropagation();
                               handleCopyPrompt(file);
                             }}
+                            aria-label={copiedPromptId === file.key ? t.copied : t.copy_prompt}
                             className={`p-2 hover:bg-white/10 active:scale-90 rounded-full transition-all ${copyPromptErrorId === file.key ? "text-white/30 cursor-not-allowed" : "text-white/80"}`}
                             disabled={
                               copyingPromptId === file.key ||
@@ -564,6 +566,7 @@ export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({
                               e.stopPropagation();
                               handleDownload(file);
                             }}
+                            aria-label={t.download}
                             className="p-2 text-white/80 hover:bg-white/10 active:scale-90 rounded-full transition-all"
                           >
                             <Download className="w-4 h-4" />
@@ -576,6 +579,7 @@ export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({
                               e.stopPropagation();
                               handleDelete(file);
                             }}
+                            aria-label={t.delete}
                             className="p-2 text-white/80 hover:text-red-400 hover:bg-red-500/10 active:scale-90 rounded-full transition-all"
                           >
                             {deletingId === file.key ? (
@@ -611,6 +615,7 @@ export const CloudGalleryView: React.FC<CloudGalleryViewProps> = ({
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-in fade-in duration-300 backdrop-blur-xl">
           <button
             onClick={() => setFullscreenImage(null)}
+            aria-label={t.close || "Close"}
             className="absolute top-6 right-6 z-[110] p-3 bg-white/5 hover:bg-white/10 active:scale-90 rounded-full text-white transition-all border border-white/10"
           >
             <X className="w-6 h-6" />

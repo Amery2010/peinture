@@ -89,6 +89,8 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
       <div className="flex items-center w-full group">
         <button
           onClick={() => setOpenProvider(openProvider === id ? "" : id)}
+          aria-label={openProvider === id ? "Collapse provider settings" : "Expand provider settings"}
+          aria-expanded={openProvider === id}
           className="flex-1 flex items-center justify-between py-4 text-left"
         >
           <div className="flex items-center gap-3">
@@ -156,6 +158,7 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
         <button
           type="button"
           onClick={() => toggleTokenShow(id)}
+          aria-label={showTokens[id] ? "Hide token" : "Show token"}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5"
         >
           {showTokens[id] ? (
@@ -454,6 +457,7 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
                     <button
                       type="button"
                       onClick={() => toggleTokenShow(cp.id)}
+                      aria-label={showTokens[cp.id] ? "Hide token" : "Show token"}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white p-1"
                     >
                       {showTokens[cp.id] ? (
@@ -568,6 +572,7 @@ export const ProviderTab: React.FC<ProviderTabProps> = (props) => {
                     <button
                       type="button"
                       onClick={() => toggleTokenShow("new")}
+                      aria-label={showTokens["new"] ? "Hide token" : "Show token"}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 hover:text-white p-1"
                     >
                       {showTokens["new"] ? (

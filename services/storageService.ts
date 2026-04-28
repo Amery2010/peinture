@@ -124,7 +124,7 @@ const signS3Request = async (
   payloadHash: string,
 ): Promise<S3SignedRequest> => {
   const date = new Date();
-  const isoDate = date.toISOString().replace(/[:-]|\.\\d{3}/g, "");
+  const isoDate = date.toISOString().replace(/[:-]|\.\d{3}/g, "");
   const dateStamp = isoDate.substring(0, 8);
   const region = config.region || "us-east-1";
   const service = "s3";

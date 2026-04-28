@@ -5,8 +5,8 @@ import { useAppInit } from './hooks/useAppInit';
 import { useCloudUpload } from './hooks/useCloudUpload';
 import { Header } from './components/Header';
 import { CreationView } from './views/CreationView';
-import { ImageEditorView } from './views/ImageEditorView';
-import { CloudGalleryView } from './views/CloudGalleryView';
+const ImageEditorView = React.lazy(() => import('./views/ImageEditorView').then(module => ({ default: module.ImageEditorView })));
+const CloudGalleryView = React.lazy(() => import('./views/CloudGalleryView').then(module => ({ default: module.CloudGalleryView })));
 import { SettingsModal } from './components/SettingsModal';
 import { FAQModal } from './components/FAQModal';
 import { AuthModal } from './components/AuthModal';
@@ -74,17 +74,21 @@ export default function App() {
                 <CreationView />
             ) : displayView === 'editor' ? (
                 <main className="w-full flex-1 flex flex-col items-center justify-center md:p-4">
-                    <ImageEditorView 
-                      onOpenSettings={handleOpenSettings}
-                      handleUploadToS3={handleUploadToCloud}
-                    />
+                    <React.Suspense fallback={<div className="flex-1 flex items-center justify-center text-white/50 text-sm">Loading Editor...</div>}>
+                        <ImageEditorView 
+                          onOpenSettings={handleOpenSettings}
+                          handleUploadToS3={handleUploadToCloud}
+                        />
+                    </React.Suspense>
                 </main>
             ) : (
                 <main className="w-full max-w-7xl mx-auto flex-1 flex flex-col gap-4 px-4 md:px-8 pb-8 pt-6">
-                    <CloudGalleryView 
-                        handleUploadToS3={handleUploadToCloud}
-                        onOpenSettings={handleOpenSettings}
-                    />
+                    <React.Suspense fallback={<div className="flex-1 flex items-center justify-center text-white/50 text-sm">Loading Gallery...</div>}>
+                        <CloudGalleryView 
+                            handleUploadToS3={handleUploadToCloud}
+                            onOpenSettings={handleOpenSettings}
+                        />
+                    </React.Suspense>
                 </main>
             )}
             </ErrorBoundary>

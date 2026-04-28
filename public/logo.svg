@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="180px" height="180px" viewBox="0 0 180 180" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>180x180 (iPhone)@1x</title>
+    <g id="180x180-(iPhone)" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="logo2" transform="translate(40, 10)">
+            <path d="M94,118 C94,122.418278 90.418278,126 86,126 L8,126 C3.581722,126 0,122.418278 0,118 L0,40 C0,35.581722 3.581722,32 8,32" id="路径" stroke="#000000" stroke-width="8" stroke-linecap="square" stroke-linejoin="round"></path>
+            <line x1="93.5" y1="77.5" x2="94.4497033" y2="115.488131" id="直线-2" stroke="#000000" stroke-width="8" stroke-linecap="round"></line>
+            <line x1="7" y1="32.5" x2="50.5" y2="32.5" id="直线" stroke="#000000" stroke-width="8" stroke-linecap="round"></line>
+            <polygon id="路径" fill="#000000" fill-rule="nonzero" points="14 103 31.25 80.3333333 48.5 97.3333333 65.75 69 83 103"></polygon>
+            <circle id="椭圆形" fill="#000000" fill-rule="nonzero" cx="32.5" cy="60.5" r="7.5"></circle>
+            <path d="M93.5554809,0 C93.5554809,19.0538325 78.1416518,34.5 59.1277108,34.5 C78.1416518,34.5 93.5554809,49.94634 93.5554809,69 C93.5554809,49.94634 108.969482,34.5 127.983251,34.5 C108.969482,34.5 93.5554809,19.0538325 93.5554809,0 Z" id="路径" fill="#000000" fill-rule="nonzero"></path>
+        </g>
+    </g>
+</svg>

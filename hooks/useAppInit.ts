@@ -19,6 +19,7 @@ import {
   generateUUID,
   fetchBlob,
 } from "../services/utils";
+import { getDefaultModelParams } from "../services/modelUtils";
 import {
   fetchServerModels,
   getCustomTaskStatus,
@@ -29,8 +30,6 @@ import {
   GITEE_MODEL_OPTIONS,
   MS_MODEL_OPTIONS,
   A4F_MODEL_OPTIONS,
-  getModelConfig,
-  getGuidanceScaleConfig,
 } from "../constants";
 
 export const useAppInit = () => {
@@ -38,7 +37,7 @@ export const useAppInit = () => {
     useSettingsStore();
   const { setIsLiveMode, currentView } = useUIStore();
   const setCurrentImage = useSetCurrentImage();
-  const { setHistory } = useDataStore();
+  const setHistory = useDataStore((s) => s.setHistory);
   const setServiceMode = useConfigStore((s) => s.setServiceMode);
   const _hasHydrated = useConfigStore((s) => s._hasHydrated);
 
@@ -82,20 +81,22 @@ export const useAppInit = () => {
           const opfsBlob = await readTempFileFromOPFS(filenameToLoad);
 
           if (opfsBlob) {
+            const hydratedImg = { ...img };
             // Revoke previous blob URL before creating a new one
-            if (img.url?.startsWith("blob:")) URL.revokeObjectURL(img.url);
-            img.url = URL.createObjectURL(opfsBlob);
+            if (hydratedImg.url?.startsWith("blob:")) URL.revokeObjectURL(hydratedImg.url);
+            hydratedImg.url = URL.createObjectURL(opfsBlob);
 
             // Hydrate video URL if exists locally
-            if (img.videoFileName) {
-              const videoBlob = await readTempFileFromOPFS(img.videoFileName);
+            if (hydratedImg.videoFileName) {
+              const videoBlob = await readTempFileFromOPFS(hydratedImg.videoFileName);
               if (videoBlob) {
-                if (img.videoUrl?.startsWith("blob:")) URL.revokeObjectURL(img.videoUrl);
-                img.videoUrl = URL.createObjectURL(videoBlob);
+                if (hydratedImg.videoUrl?.startsWith("blob:")) URL.revokeObjectURL(hydratedImg.videoUrl);
+                hydratedImg.videoUrl = URL.createObjectURL(videoBlob);
               }
             }
 
-            validHistory.push(img);
+            validHistory.push(hydratedImg);
+            hasChanges = true;
           } else {
             if (!img.url.startsWith("blob:")) {
               validHistory.push(img);
@@ -119,6 +120,8 @@ export const useAppInit = () => {
           setIsLiveMode(true);
         }
       }
+
+      useUIStore.getState().setIsOpfsHydrated(true);
     };
 
     hydrateHistory();
@@ -242,9 +245,14 @@ export const useAppInit = () => {
       }
 
       const now = Date.now();
-      const readyToPoll = pendingVideos.filter(
-        (img) => !img.videoNextPollTime || now >= img.videoNextPollTime,
-      );
+      const MAX_POLL_TIME = 10 * 60 * 1000; // 10 minutes
+
+      const readyToPoll = pendingVideos.filter((img) => {
+        if (img.videoTimestamp && now - img.videoTimestamp > MAX_POLL_TIME) {
+          return true; // We will handle timeout in the map function
+        }
+        return !img.videoNextPollTime || now >= img.videoNextPollTime;
+      });
 
       if (readyToPoll.length === 0) {
         const nextTimes = pendingVideos.map(
@@ -259,6 +267,11 @@ export const useAppInit = () => {
       const updates = await Promise.all(
         readyToPoll.map(async (img) => {
           if (!img.videoTaskId) return null;
+          
+          if (img.videoTimestamp && now - img.videoTimestamp > MAX_POLL_TIME) {
+            return { id: img.id, status: "failed", error: "Generation timed out" };
+          }
+
           try {
             let result = null;
             if (img.videoProvider === "gitee") {
@@ -430,41 +443,7 @@ export const useAppInit = () => {
     // User actively switched provider or model — update the ref and reset to model defaults
     prevProviderModelRef.current = { provider, model };
 
-    let defaultSteps = 9;
-    let defaultGs = 7.5;
-    let hasGs = false;
-
-    const customProviders = getCustomProviders();
-    const activeCustom = customProviders.find((p) => p.id === provider);
-
-    if (activeCustom) {
-      const customModel = activeCustom.models.generate?.find(m => m.id === model);
-      if (customModel) {
-        if (customModel.steps) {
-          defaultSteps = customModel.steps.default;
-        }
-        if (customModel.guidance) {
-          hasGs = true;
-          defaultGs = customModel.guidance.default;
-        }
-      } else {
-        const fallback = getModelConfig(provider, model);
-        defaultSteps = fallback.default;
-        const fallbackGs = getGuidanceScaleConfig(model, provider);
-        if (fallbackGs) {
-          hasGs = true;
-          defaultGs = fallbackGs.default;
-        }
-      }
-    } else {
-      const config = getModelConfig(provider, model);
-      defaultSteps = config.default;
-      const gsConfig = getGuidanceScaleConfig(model, provider);
-      if (gsConfig) {
-        hasGs = true;
-        defaultGs = gsConfig.default;
-      }
-    }
+    const { defaultSteps, defaultGs, hasGs } = getDefaultModelParams(provider, model);
 
     // Reset to default to ensure parameters do not exceed bounds of the active model
     setSteps(defaultSteps);
